@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -62,6 +63,11 @@ fun TemplateEditorScreen(
                     }
                 },
                 actions = {
+                    IconButton(
+                        onClick = { viewModel.showImportDialog() }
+                    ) {
+                        Icon(Icons.Default.List, contentDescription = "Import from text")
+                    }
                     TextButton(
                         onClick = {
                             viewModel.saveTemplate()
@@ -138,6 +144,15 @@ fun TemplateEditorScreen(
                     Text("Cancel")
                 }
             }
+        )
+    }
+    
+    if (state.showImportDialog) {
+        ImportDialog(
+            onImport = { text ->
+                viewModel.importFromText(text)
+            },
+            onDismiss = { viewModel.dismissImportDialog() }
         )
     }
 }
@@ -285,5 +300,53 @@ fun StepItem(
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ImportDialog(
+    onImport: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var text by remember { mutableStateOf("") }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Import from Text") },
+        text = {
+            Column {
+                Text(
+                    text = "Enter items, one per line:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    placeholder = { Text("*Morning Routine*\n- Wake up at 6 AM\n- Drink water\n- Exercise for 30 min") },
+                    maxLines = 10
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onImport(text)
+                    onDismiss()
+                },
+                enabled = text.isNotBlank()
+            ) {
+                Text("Import")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 

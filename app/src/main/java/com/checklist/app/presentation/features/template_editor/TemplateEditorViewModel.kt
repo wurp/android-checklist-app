@@ -143,13 +143,63 @@ class TemplateEditorViewModel @Inject constructor(
     fun dismissUnsavedChangesDialog() {
         _state.update { it.copy(showUnsavedChangesDialog = false) }
     }
+    
+    fun showImportDialog() {
+        _state.update { it.copy(showImportDialog = true) }
+    }
+    
+    fun dismissImportDialog() {
+        _state.update { it.copy(showImportDialog = false) }
+    }
+    
+    fun importFromText(text: String) {
+        val lines = text.split("\n")
+            .map { line ->
+                // Remove leading/trailing whitespace and dashes
+                line.trim().trimStart('-').trim()
+            }
+            .filter { it.isNotBlank() }
+        
+        if (lines.isEmpty()) return
+        
+        var templateName: String? = null
+        var stepLines = lines
+        
+        // Check if first line is a template name (starts and ends with *)
+        if (lines.first().startsWith("*") && lines.first().endsWith("*") && lines.first().length > 2) {
+            templateName = lines.first().removeSurrounding("*").trim()
+            stepLines = lines.drop(1)
+        }
+        
+        if (stepLines.isNotEmpty()) {
+            _state.update { state ->
+                state.copy(
+                    name = if (templateName != null && state.name.isBlank()) {
+                        templateName
+                    } else {
+                        state.name
+                    },
+                    steps = if (state.steps.size == 1 && state.steps[0].isBlank()) {
+                        // Replace the single empty step
+                        stepLines
+                    } else {
+                        // Append to existing steps
+                        state.steps + stepLines
+                    },
+                    hasUnsavedChanges = true,
+                    showImportDialog = false
+                )
+            }
+        }
+    }
 }
 
 data class TemplateEditorState(
     val name: String = "",
     val steps: List<String> = listOf(""),
     val hasUnsavedChanges: Boolean = false,
-    val showUnsavedChangesDialog: Boolean = false
+    val showUnsavedChangesDialog: Boolean = false,
+    val showImportDialog: Boolean = false
 ) {
     val canSave: Boolean
         get() = name.isNotBlank() && steps.any { it.isNotBlank() }

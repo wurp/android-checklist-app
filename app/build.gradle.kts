@@ -30,7 +30,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.checklist.app"
+        applicationId = "com.eschaton.checklists"
         minSdk = 24
         targetSdk = 34
         versionCode = 1

@@ -111,6 +111,9 @@ dependencies {
     // Google Play Billing (for in-app purchases)
     implementation("com.android.billingclient:billing-ktx:6.0.1")
     
+    // DataStore for preferences
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+    
     // Testing
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

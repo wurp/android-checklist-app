@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.checklist.app.data.repository.TemplateRepository
 import com.checklist.app.domain.model.Template
+import com.checklist.app.domain.usecase.template.ParseTemplateFromTextUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,7 +14,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class TemplateEditorViewModel @Inject constructor(
-    private val templateRepository: TemplateRepository
+    private val templateRepository: TemplateRepository,
+    private val parseTemplateFromTextUseCase: ParseTemplateFromTextUseCase
 ) : ViewModel() {
     
     private val _state = MutableStateFlow(TemplateEditorState())
@@ -153,38 +155,22 @@ class TemplateEditorViewModel @Inject constructor(
     }
     
     fun importFromText(text: String) {
-        val lines = text.split("\n")
-            .map { line ->
-                // Remove leading/trailing whitespace and dashes
-                line.trim().trimStart('-').trim()
-            }
-            .filter { it.isNotBlank() }
+        val parsed = parseTemplateFromTextUseCase(text)
         
-        if (lines.isEmpty()) return
-        
-        var templateName: String? = null
-        var stepLines = lines
-        
-        // Check if first line is a template name (starts and ends with *)
-        if (lines.first().startsWith("*") && lines.first().endsWith("*") && lines.first().length > 2) {
-            templateName = lines.first().removeSurrounding("*").trim()
-            stepLines = lines.drop(1)
-        }
-        
-        if (stepLines.isNotEmpty()) {
+        if (parsed.steps.isNotEmpty()) {
             _state.update { state ->
                 state.copy(
-                    name = if (templateName != null && state.name.isBlank()) {
-                        templateName
+                    name = if (parsed.name != null && state.name.isBlank()) {
+                        parsed.name
                     } else {
                         state.name
                     },
                     steps = if (state.steps.size == 1 && state.steps[0].isBlank()) {
                         // Replace the single empty step
-                        stepLines
+                        parsed.steps
                     } else {
                         // Append to existing steps
-                        state.steps + stepLines
+                        state.steps + parsed.steps
                     },
                     hasUnsavedChanges = true,
                     showImportDialog = false

@@ -5,13 +5,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.checklist.app.presentation.features.active_checklists.ActiveChecklistsScreen
 import com.checklist.app.presentation.features.current_checklist.CurrentChecklistScreen
 import com.checklist.app.presentation.features.templates.TemplatesScreen
+import android.app.Activity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -20,6 +24,8 @@ fun MainScreen(
     viewModel: MainViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    val hasPurchased by viewModel.hasPurchased.collectAsState()
+    val activity = LocalContext.current as? Activity
     
     Scaffold(
         topBar = {
@@ -32,6 +38,19 @@ fun MainScreen(
                             Tab.CURRENT_CHECKLIST -> "Current Checklist"
                         }
                     )
+                },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            activity?.let { viewModel.throwDevABone(it) }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = if (hasPurchased) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = if (hasPurchased) "Thank you!" else "Throw Dev a Bone",
+                            tint = if (hasPurchased) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
             )
         },

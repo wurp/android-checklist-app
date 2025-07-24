@@ -1,9 +1,12 @@
 package com.checklist.app.presentation.features.main
 
+import android.app.Activity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.checklist.app.data.repository.ChecklistRepository
 import com.checklist.app.data.repository.TemplateRepository
+import com.checklist.app.domain.usecase.billing.ThrowDevABoneUseCase
+import com.checklist.app.domain.usecase.template.LoadSampleTemplatesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,13 +17,24 @@ import javax.inject.Inject
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val checklistRepository: ChecklistRepository,
-    private val templateRepository: TemplateRepository
+    private val templateRepository: TemplateRepository,
+    private val loadSampleTemplatesUseCase: LoadSampleTemplatesUseCase,
+    private val throwDevABoneUseCase: ThrowDevABoneUseCase
 ) : ViewModel() {
     
     private val _state = MutableStateFlow(MainScreenState())
     val state = _state.asStateFlow()
     
+    val hasPurchased = throwDevABoneUseCase.hasPurchased
+    
     private var pendingTemplateId: String? = null
+    
+    init {
+        // Load sample templates on first launch
+        viewModelScope.launch {
+            loadSampleTemplatesUseCase()
+        }
+    }
     
     fun selectTab(tab: Tab) {
         _state.update { it.copy(currentTab = tab) }
@@ -66,6 +80,12 @@ class MainViewModel @Inject constructor(
                     currentTab = Tab.CURRENT_CHECKLIST
                 )
             }
+        }
+    }
+    
+    fun throwDevABone(activity: Activity) {
+        viewModelScope.launch {
+            throwDevABoneUseCase(activity)
         }
     }
 }

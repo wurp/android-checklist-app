@@ -1,0 +1,18 @@
+*Apollo Launch Sequence (Simplified)*
+T-6:00:00 - Begin launch countdown
+T-5:00:00 - Clear launch pad of all personnel
+T-3:00:00 - Begin fueling procedures
+T-2:30:00 - Load liquid oxygen
+T-2:00:00 - Load RP-1 fuel
+T-1:30:00 - Launch vehicle power transfer to internal
+T-1:00:00 - Verify all systems GO for launch
+T-0:45:00 - Retract crew access arm
+T-0:30:00 - Launch director final GO/NO-GO poll
+T-0:20:00 - Switch to automatic launch sequence
+T-0:10:00 - Activate launch pad water deluge system
+T-0:06:00 - Main engine gimbal test
+T-0:03:00 - Pressurize propellant tanks
+T-0:00:45 - Launch control to onboard computer
+T-0:00:10 - Go for main engine start
+T-0:00:06 - Main engine ignition
+T-0:00:00 - Solid rocket booster ignition and liftoff!

@@ -24,10 +24,14 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -165,38 +169,74 @@ fun DraggableStepsList(
     onStepsReorder: (fromIndex: Int, toIndex: Int) -> Unit
 ) {
     var draggedIndex by remember { mutableStateOf<Int?>(null) }
-    var dragOffset by remember { mutableStateOf(0f) }
+    var draggedItemOffset by remember { mutableStateOf(0f) }
+    val density = LocalDensity.current
     
     LazyColumn(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxSize()
     ) {
-        itemsIndexed(steps) { index, step ->
+        itemsIndexed(
+            items = steps
+        ) { index, step ->
             val isDragging = draggedIndex == index
+            val targetIndex = draggedIndex ?: index
             
-            StepItem(
-                step = step,
-                index = index,
-                isDragging = isDragging,
-                dragOffset = if (isDragging) dragOffset else 0f,
-                onStepChange = { onStepChange(index, it) },
-                onDelete = { onStepDelete(index) },
-                onDragStart = { draggedIndex = index },
-                onDrag = { offset ->
-                    dragOffset = offset
-                    // Calculate target index based on drag offset
-                    val itemHeight = 80.dp.value
-                    val targetIndex = index + (offset / itemHeight).toInt()
-                    if (targetIndex != index && targetIndex in steps.indices) {
-                        onStepsReorder(index, targetIndex)
-                        draggedIndex = targetIndex
+            // Calculate visual offset for non-dragged items
+            val visualOffset = when {
+                !isDragging && draggedIndex != null -> {
+                    val draggingIndex = draggedIndex!!
+                    val itemHeightPx = with(density) { 88.dp.toPx() }
+                    val draggedToIndex = (draggingIndex + (draggedItemOffset / itemHeightPx).roundToInt())
+                        .coerceIn(0, steps.lastIndex)
+                    
+                    when {
+                        index == draggedToIndex && draggingIndex < index -> -itemHeightPx
+                        index == draggedToIndex && draggingIndex > index -> itemHeightPx
+                        index in (draggingIndex + 1)..draggedToIndex -> -itemHeightPx
+                        index in draggedToIndex until draggingIndex -> itemHeightPx
+                        else -> 0f
                     }
-                },
-                onDragEnd = {
-                    draggedIndex = null
-                    dragOffset = 0f
                 }
-            )
+                else -> 0f
+            }
+            
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .offset { IntOffset(0, visualOffset.roundToInt()) }
+                    .zIndex(if (isDragging) 1f else 0f)
+            ) {
+                StepItem(
+                    step = step,
+                    index = index,
+                    isDragging = isDragging,
+                    dragOffset = if (isDragging) draggedItemOffset else 0f,
+                    onStepChange = { onStepChange(targetIndex, it) },
+                    onDelete = { onStepDelete(targetIndex) },
+                    onDragStart = { 
+                        draggedIndex = index
+                        draggedItemOffset = 0f
+                    },
+                    onDrag = { delta ->
+                        draggedItemOffset += delta
+                        
+                        val itemHeightPx = with(density) { 88.dp.toPx() }
+                        val targetPosition = index + (draggedItemOffset / itemHeightPx).roundToInt()
+                        val coercedTarget = targetPosition.coerceIn(0, steps.lastIndex)
+                        
+                        if (coercedTarget != index && coercedTarget != draggedIndex) {
+                            onStepsReorder(draggedIndex!!, coercedTarget)
+                            draggedIndex = coercedTarget
+                        }
+                    },
+                    onDragEnd = {
+                        draggedIndex = null
+                        draggedItemOffset = 0f
+                    }
+                )
+            }
         }
     }
 }
@@ -221,13 +261,18 @@ fun StepItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .offset(y = dragOffset.dp)
-            .shadow(if (isDragging) 8.dp else 0.dp)
-            .background(
-                if (isDragging) MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
-                else MaterialTheme.colorScheme.surface
+            .offset { IntOffset(0, dragOffset.roundToInt()) }
+            .shadow(
+                elevation = if (isDragging) 8.dp else 1.dp,
+                shape = RoundedCornerShape(8.dp)
             ),
-        shape = RoundedCornerShape(8.dp)
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isDragging) 
+                MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+            else 
+                MaterialTheme.colorScheme.surface
+        )
     ) {
         Row(
             modifier = Modifier
@@ -242,13 +287,18 @@ fun StepItem(
                     .padding(8.dp)
                     .pointerInput(Unit) {
                         detectDragGestures(
-                            onDragStart = { onDragStart() },
+                            onDragStart = { 
+                                onDragStart()
+                            },
                             onDrag = { _, dragAmount ->
                                 onDrag(dragAmount.y)
                             },
-                            onDragEnd = { onDragEnd() }
+                            onDragEnd = { 
+                                onDragEnd()
+                            }
                         )
-                    }
+                    },
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
             
             Box(

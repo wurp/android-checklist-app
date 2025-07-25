@@ -171,31 +171,35 @@ fun DraggableStepsList(
     var draggedIndex by remember { mutableStateOf<Int?>(null) }
     var draggedItemOffset by remember { mutableStateOf(0f) }
     val density = LocalDensity.current
+    val itemHeightDp = 88.dp
+    val itemSpacingDp = 8.dp
+    val totalItemHeightDp = itemHeightDp + itemSpacingDp
     
     LazyColumn(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(itemSpacingDp),
         modifier = Modifier.fillMaxSize()
     ) {
         itemsIndexed(
-            items = steps
+            items = steps,
+            key = { index, _ -> index }
         ) { index, step ->
             val isDragging = draggedIndex == index
-            val targetIndex = draggedIndex ?: index
             
             // Calculate visual offset for non-dragged items
             val visualOffset = when {
                 !isDragging && draggedIndex != null -> {
                     val draggingIndex = draggedIndex!!
-                    val itemHeightPx = with(density) { 88.dp.toPx() }
-                    val draggedToIndex = (draggingIndex + (draggedItemOffset / itemHeightPx).roundToInt())
-                        .coerceIn(0, steps.lastIndex)
+                    val totalItemHeightPx = with(density) { totalItemHeightDp.toPx() }
+                    
+                    // Calculate where the dragged item currently is
+                    val draggedItemCurrentPosition = draggingIndex + (draggedItemOffset / totalItemHeightPx)
                     
                     when {
-                        index == draggedToIndex && draggingIndex < index -> -itemHeightPx
-                        index == draggedToIndex && draggingIndex > index -> itemHeightPx
-                        index in (draggingIndex + 1)..draggedToIndex -> -itemHeightPx
-                        index in draggedToIndex until draggingIndex -> itemHeightPx
+                        // If this item is below the original position and the dragged item is moving down past it
+                        index > draggingIndex && draggedItemCurrentPosition > index - 0.5f -> -totalItemHeightPx
+                        // If this item is above the original position and the dragged item is moving up past it
+                        index < draggingIndex && draggedItemCurrentPosition < index + 0.5f -> totalItemHeightPx
                         else -> 0f
                     }
                 }
@@ -213,22 +217,31 @@ fun DraggableStepsList(
                     index = index,
                     isDragging = isDragging,
                     dragOffset = if (isDragging) draggedItemOffset else 0f,
-                    onStepChange = { onStepChange(targetIndex, it) },
-                    onDelete = { onStepDelete(targetIndex) },
+                    onStepChange = { onStepChange(index, it) },
+                    onDelete = { onStepDelete(index) },
                     onDragStart = { 
                         draggedIndex = index
                         draggedItemOffset = 0f
                     },
                     onDrag = { delta ->
+                        val currentDraggedIndex = draggedIndex ?: return@StepItem
                         draggedItemOffset += delta
                         
-                        val itemHeightPx = with(density) { 88.dp.toPx() }
-                        val targetPosition = index + (draggedItemOffset / itemHeightPx).roundToInt()
+                        val totalItemHeightPx = with(density) { totalItemHeightDp.toPx() }
+                        val targetPosition = currentDraggedIndex + (draggedItemOffset / totalItemHeightPx).roundToInt()
                         val coercedTarget = targetPosition.coerceIn(0, steps.lastIndex)
                         
-                        if (coercedTarget != index && coercedTarget != draggedIndex) {
-                            onStepsReorder(draggedIndex!!, coercedTarget)
+                        if (coercedTarget != currentDraggedIndex && coercedTarget != draggedIndex) {
+                            // Perform the reorder immediately
+                            onStepsReorder(currentDraggedIndex, coercedTarget)
+                            
+                            // Update the dragged index to the new position
                             draggedIndex = coercedTarget
+                            
+                            // Adjust the offset to keep the item under the finger
+                            // When we move an item, we need to compensate for the position change
+                            val positionDifference = coercedTarget - currentDraggedIndex
+                            draggedItemOffset -= positionDifference * totalItemHeightPx
                         }
                     },
                     onDragEnd = {
@@ -261,6 +274,7 @@ fun StepItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .height(80.dp)  // Fixed height to match our calculations (88dp - 8dp spacing)
             .offset { IntOffset(0, dragOffset.roundToInt()) }
             .shadow(
                 elevation = if (isDragging) 8.dp else 1.dp,

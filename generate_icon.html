@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate App Icon</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            background: white;
+            display: block;
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #1976D2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Your Checklists App Icon Generator</h1>
+    <canvas id="canvas" width="512" height="512"></canvas>
+    <button onclick="downloadIcon()">Download 512x512 PNG</button>
+    
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const size = 512;
+        const center = size / 2;
+        const radius = size * 0.4; // 40% of canvas size for the circle
+        
+        // Clear canvas
+        ctx.clearRect(0, 0, size, size);
+        
+        // Enable anti-aliasing
+        ctx.imageSmoothingEnabled = true;
+        
+        // Draw background circle
+        ctx.fillStyle = '#2196F3';
+        ctx.beginPath();
+        ctx.arc(center, center, radius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Draw checkmark
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = size * 0.06; // 6% of size for stroke width
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(size * 0.3, size * 0.5);
+        ctx.lineTo(size * 0.4, size * 0.6);
+        ctx.lineTo(size * 0.65, size * 0.35);
+        ctx.stroke();
+        
+        // Draw list lines
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.lineWidth = size * 0.025; // 2.5% of size for line width
+        ctx.beginPath();
+        ctx.moveTo(size * 0.35, size * 0.68);
+        ctx.lineTo(size * 0.65, size * 0.68);
+        ctx.stroke();
+        
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.beginPath();
+        ctx.moveTo(size * 0.35, size * 0.76);
+        ctx.lineTo(size * 0.58, size * 0.76);
+        ctx.stroke();
+        
+        function downloadIcon() {
+            const link = document.createElement('a');
+            link.download = 'app_icon_512x512.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+    </script>
+</body>
+</html>

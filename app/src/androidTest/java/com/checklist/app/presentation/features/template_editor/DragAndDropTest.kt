@@ -127,7 +127,7 @@ class DragAndDropTest {
         }
         
         // Act 1 - First drag: Move Step 1 to position 2
-        composeTestRule.onNodeWithTag("drag-handle-0")
+        composeTestRule.onAllNodesWithContentDescription("Drag to reorder")[0]
             .performTouchInput {
                 down(center)
                 moveBy(androidx.compose.ui.geometry.Offset(0f, 88.dp.toPx() * 2))
@@ -144,7 +144,7 @@ class DragAndDropTest {
         
         // Act 2 - Second drag: Now drag what's currently at position 0 (Step 2)
         // This tests that we're dragging by current position, not by ID
-        composeTestRule.onNodeWithTag("drag-handle-0")
+        composeTestRule.onAllNodesWithContentDescription("Drag to reorder")[0]
             .performTouchInput {
                 down(center)
                 moveBy(androidx.compose.ui.geometry.Offset(0f, 88.dp.toPx()))
@@ -220,15 +220,20 @@ class DragAndDropTest {
             }
         }
         
-        // Act - Try to drag the text field (not the handle)
-        composeTestRule.onAllNodesWithTag("step-text-field")[0]
+        // Act - Try to drag the text content (not the handle)
+        // Click on the text area to enter edit mode instead of dragging
+        composeTestRule.onNodeWithText("Step 1")
             .performTouchInput {
                 down(center)
                 moveBy(androidx.compose.ui.geometry.Offset(0f, 88.dp.toPx()))
                 up()
             }
         
-        // Assert
+        // Assert - No drag should have occurred
         assertFalse("Drag should not start when not using handle", dragStarted)
+        // The list order should remain unchanged
+        assertEquals("Step 1", currentSteps[0])
+        assertEquals("Step 2", currentSteps[1])
+        assertEquals("Step 3", currentSteps[2])
     }
 }

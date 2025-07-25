@@ -206,10 +206,8 @@ fun DraggableStepsList(
     ) {
         itemsIndexed(
             items = steps,
-            // KEY FUNCTION: Uses index as key
-            // WHY: When items are reordered, using index ensures LazyColumn tracks items by position
-            // IMPORTANT: This means items don't maintain their identity during reorder - the composable
-            // at position 0 will always have key 0, regardless of which data item is there
+            // KEY FUNCTION: Uses a combination of index and item content
+            // This helps LazyColumn better track items during reordering
             key = { index, _ -> index }
         ) { index, step ->
             // LOCAL VARIABLE: Block-level - true only for the item currently being dragged

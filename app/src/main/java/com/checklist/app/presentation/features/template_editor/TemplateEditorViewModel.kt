@@ -97,28 +97,11 @@ class TemplateEditorViewModel @Inject constructor(
     
     fun reorderSteps(fromIndex: Int, toIndex: Int) {
         _state.update { state ->
-            // CREATE MUTABLE COPY: Need a mutable list to perform the reordering
-            // WHY toMutableList(): Creates a new list instance to avoid mutating the immutable state
             val newSteps = state.steps.toMutableList()
-            
-            // BOUNDS CHECK: Ensure both indices are valid
-            // WHY: Prevents IndexOutOfBoundsException from invalid drag operations
-            // IMPORTANT: This check is crucial for index 0 - ensures we handle first item correctly
             if (fromIndex in newSteps.indices && toIndex in newSteps.indices) {
-                // REORDER OPERATION: Remove item from old position and insert at new position
-                // Step 1: Remove the item from its current position
-                // WHY removeAt returns the item: Allows us to capture it for reinsertion
                 val item = newSteps.removeAt(fromIndex)
-                
-                // Step 2: Insert the item at its new position
-                // CRITICAL: After removeAt, all indices after fromIndex shift down by 1
-                // This is handled correctly by add() which inserts at the exact index specified
                 newSteps.add(toIndex, item)
             }
-            
-            // CREATE NEW STATE: Return updated state with reordered steps
-            // WHY copy(): Maintains immutability of state
-            // WHY hasUnsavedChanges = true: User has modified the template
             state.copy(
                 steps = newSteps,
                 hasUnsavedChanges = true

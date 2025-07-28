@@ -4,6 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.checklist.app.data.repository.ChecklistRepository
 import com.checklist.app.domain.model.Checklist
+import com.checklist.app.domain.usecase.checklist.UpdateChecklistTaskUseCase
+import com.checklist.app.domain.usecase.checklist.DeleteChecklistTaskUseCase
+import com.checklist.app.domain.usecase.checklist.AddChecklistTaskUseCase
 import com.checklist.app.presentation.utils.HapticManager
 import com.checklist.app.presentation.utils.SoundManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,6 +17,9 @@ import javax.inject.Inject
 @HiltViewModel
 class CurrentChecklistViewModel @Inject constructor(
     private val checklistRepository: ChecklistRepository,
+    private val updateChecklistTaskUseCase: UpdateChecklistTaskUseCase,
+    private val deleteChecklistTaskUseCase: DeleteChecklistTaskUseCase,
+    private val addChecklistTaskUseCase: AddChecklistTaskUseCase,
     private val hapticManager: HapticManager,
     private val soundManager: SoundManager
 ) : ViewModel() {
@@ -42,6 +48,25 @@ class CurrentChecklistViewModel @Inject constructor(
     
     private var wasCompleted = false
     
+    // Edit mode state
+    private val _isEditMode = MutableStateFlow(false)
+    val isEditMode = _isEditMode.asStateFlow()
+    
+    private val _showDeleteTaskDialog = MutableStateFlow(false)
+    val showDeleteTaskDialog = _showDeleteTaskDialog.asStateFlow()
+    
+    private val _taskToDelete = MutableStateFlow<String?>(null)
+    val taskToDelete = _taskToDelete.asStateFlow()
+    
+    private val _editError = MutableStateFlow<String?>(null)
+    val editError = _editError.asStateFlow()
+    
+    private val _showAddTaskDialog = MutableStateFlow(false)
+    val showAddTaskDialog = _showAddTaskDialog.asStateFlow()
+    
+    private val _editingTaskId = MutableStateFlow<String?>(null)
+    val editingTaskId = _editingTaskId.asStateFlow()
+    
     init {
         // Monitor for checklist completion
         viewModelScope.launch {
@@ -62,9 +87,16 @@ class CurrentChecklistViewModel @Inject constructor(
     fun loadChecklist(checklistId: String?) {
         _checklistId.value = checklistId
         wasCompleted = false
+        // Reset edit mode when loading a new checklist
+        _isEditMode.value = false
+        _editingTaskId.value = null
+        _editError.value = null
     }
     
     fun toggleTask(checklistId: String, taskId: String) {
+        // Don't allow toggling in edit mode
+        if (_isEditMode.value) return
+        
         viewModelScope.launch {
             val currentChecklist = checklist.value
             val task = currentChecklist?.tasks?.find { it.id == taskId }
@@ -101,5 +133,104 @@ class CurrentChecklistViewModel @Inject constructor(
     
     fun dismissCompletionMessage() {
         _showCompletionMessage.value = false
+    }
+    
+    // Edit mode functions
+    fun toggleEditMode() {
+        _isEditMode.value = !_isEditMode.value
+        if (!_isEditMode.value) {
+            // Clear any editing state when exiting edit mode
+            _editingTaskId.value = null
+            _editError.value = null
+        }
+    }
+    
+    fun startEditingTask(taskId: String) {
+        _editingTaskId.value = taskId
+        _editError.value = null
+    }
+    
+    fun cancelEditingTask() {
+        _editingTaskId.value = null
+        _editError.value = null
+    }
+    
+    fun updateTaskText(checklistId: String, taskId: String, newText: String) {
+        viewModelScope.launch {
+            try {
+                _editError.value = null
+                updateChecklistTaskUseCase(checklistId, taskId, newText)
+                _editingTaskId.value = null
+            } catch (e: IllegalArgumentException) {
+                _editError.value = e.message ?: "Invalid input"
+            } catch (e: Exception) {
+                _editError.value = "Failed to update task"
+            }
+        }
+    }
+    
+    fun requestDeleteTask(taskId: String) {
+        _taskToDelete.value = taskId
+        _showDeleteTaskDialog.value = true
+    }
+    
+    fun confirmDeleteTask() {
+        viewModelScope.launch {
+            _checklistId.value?.let { checklistId ->
+                _taskToDelete.value?.let { taskId ->
+                    try {
+                        _editError.value = null
+                        deleteChecklistTaskUseCase(checklistId, taskId)
+                        _taskToDelete.value = null
+                        _showDeleteTaskDialog.value = false
+                    } catch (e: IllegalStateException) {
+                        _editError.value = e.message ?: "Cannot delete task"
+                        _showDeleteTaskDialog.value = false
+                    } catch (e: Exception) {
+                        _editError.value = "Failed to delete task"
+                        _showDeleteTaskDialog.value = false
+                    }
+                }
+            }
+        }
+    }
+    
+    fun cancelDeleteTask() {
+        _taskToDelete.value = null
+        _showDeleteTaskDialog.value = false
+    }
+    
+    fun showAddTaskDialog() {
+        _showAddTaskDialog.value = true
+        _editError.value = null
+    }
+    
+    fun hideAddTaskDialog() {
+        _showAddTaskDialog.value = false
+        _editError.value = null
+    }
+    
+    fun addNewTask(text: String) {
+        viewModelScope.launch {
+            _checklistId.value?.let { checklistId ->
+                try {
+                    _editError.value = null
+                    addChecklistTaskUseCase(checklistId, text)
+                    _showAddTaskDialog.value = false
+                } catch (e: IllegalArgumentException) {
+                    _editError.value = e.message ?: "Invalid input"
+                } catch (e: Exception) {
+                    _editError.value = "Failed to add task"
+                }
+            }
+        }
+    }
+    
+    fun setEditError(error: String) {
+        _editError.value = error
+    }
+    
+    fun clearEditError() {
+        _editError.value = null
     }
 }

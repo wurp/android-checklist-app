@@ -26,3 +26,49 @@ Follow this structured progression:
 
 **DELIVERABLE:**
 In the end, deliver a complete, deployment-ready Android application that can be installed and run on devices. We will take many intermediate steps before then.
+
+## TECHNICAL IMPLEMENTATION
+
+**Technology Stack:**
+- **Language:** Kotlin
+- **UI Framework:** Jetpack Compose with Material Design 3
+- **Architecture:** MVVM + Repository Pattern + Clean Architecture
+- **Dependency Injection:** Hilt/Dagger
+- **Database:** Room with Flow for reactive data
+- **Async Operations:** Coroutines + Flow
+- **Navigation:** Navigation Compose
+- **Build System:** Gradle with Kotlin DSL
+
+**Key Implementation Details:**
+
+1. **Drag-to-Reorder System:**
+   - Uses ID-based tracking instead of index-based to prevent state synchronization issues
+   - Implements deferred reordering (only updates on drag end, not during drag)
+   - Comprehensive test suite for drag operations
+
+2. **In-App Purchase:**
+   - "Throw Dev a Bone" feature using Google Play Billing
+   - Persistent purchase state tracking via DataStore
+   - Non-intrusive monetization approach
+
+3. **Sample Templates:**
+   - Auto-loads from assets/ on first launch
+   - Includes real-world examples (travel, morning routine, Apollo launch)
+   - Smart text parser for template import
+
+4. **Haptic & Sound Feedback:**
+   - Single vibration for task completion
+   - Triple vibration + chime for checklist completion
+   - Managed through dedicated HapticManager and SoundManager
+
+5. **Testing Strategy:**
+   - Unit tests for ViewModels and business logic
+   - Instrumented tests for drag-and-drop functionality
+   - Test-driven bug fixes (see DRAG_REORDER_BUG.md)
+
+**Architecture Highlights:**
+- Clean separation of concerns with data/domain/presentation layers
+- Platform-agnostic business logic for future iOS port
+- Repository pattern abstracts data sources
+- Use cases encapsulate business rules
+- Reactive UI with Compose and StateFlow

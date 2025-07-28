@@ -10,6 +10,7 @@ import com.checklist.app.data.repository.ChecklistRepository
 import com.checklist.app.domain.model.Checklist
 import com.checklist.app.domain.model.ChecklistTask
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.util.UUID
 import javax.inject.Inject
@@ -66,5 +67,84 @@ class ChecklistRepositoryImpl @Inject constructor(
     
     override suspend fun getActiveChecklistsCount(templateId: String): Int {
         return checklistDao.getActiveChecklistsCount(templateId)
+    }
+    
+    override suspend fun updateTaskText(checklistId: String, taskId: String, newText: String) {
+        val task = checklistDao.getTaskById(taskId)
+            ?: throw IllegalArgumentException("Task not found")
+        
+        val updatedTask = task.copy(text = newText)
+        checklistDao.updateChecklistTask(updatedTask)
+        
+        // Update checklist's updatedAt timestamp
+        val checklist = checklistDao.getChecklistById(checklistId)
+        if (checklist != null) {
+            checklistDao.updateChecklist(checklist.copy(updatedAt = System.currentTimeMillis()))
+        }
+    }
+    
+    override suspend fun deleteTask(checklistId: String, taskId: String) {
+        // First check if this is the last task
+        val checklistWithTasks = checklistDao.getChecklistWithTasks(checklistId).first()
+        
+        if (checklistWithTasks == null) {
+            throw IllegalArgumentException("Checklist not found")
+        }
+        
+        if (checklistWithTasks.tasks.size <= 1) {
+            throw IllegalStateException("Cannot delete the last task")
+        }
+        
+        val task = checklistDao.getTaskById(taskId)
+            ?: throw IllegalArgumentException("Task not found")
+        
+        // Delete the task
+        checklistDao.deleteChecklistTask(task)
+        
+        // Reorder remaining tasks
+        val remainingTasks = checklistWithTasks.tasks
+            .filter { it.id != taskId }
+            .sortedBy { it.orderIndex }
+            .mapIndexed { index, taskEntity ->
+                if (taskEntity.orderIndex != index) {
+                    taskEntity.copy(orderIndex = index)
+                } else {
+                    taskEntity
+                }
+            }
+        
+        // Update any tasks that need reordering
+        remainingTasks.forEach { taskEntity ->
+            if (taskEntity.orderIndex != checklistWithTasks.tasks.find { it.id == taskEntity.id }?.orderIndex) {
+                checklistDao.updateChecklistTask(taskEntity)
+            }
+        }
+        
+        // Update checklist's updatedAt timestamp
+        val checklist = checklistDao.getChecklistById(checklistId)
+        if (checklist != null) {
+            checklistDao.updateChecklist(checklist.copy(updatedAt = System.currentTimeMillis()))
+        }
+    }
+    
+    override suspend fun addTask(checklistId: String, text: String) {
+        val maxOrderIndex = checklistDao.getMaxOrderIndex(checklistId) ?: -1
+        
+        val newTask = ChecklistTaskEntity(
+            id = UUID.randomUUID().toString(),
+            checklistId = checklistId,
+            text = text,
+            isCompleted = false,
+            completedAt = null,
+            orderIndex = maxOrderIndex + 1
+        )
+        
+        checklistDao.insertChecklistTask(newTask)
+        
+        // Update checklist's updatedAt timestamp
+        val checklist = checklistDao.getChecklistById(checklistId)
+        if (checklist != null) {
+            checklistDao.updateChecklist(checklist.copy(updatedAt = System.currentTimeMillis()))
+        }
     }
 }

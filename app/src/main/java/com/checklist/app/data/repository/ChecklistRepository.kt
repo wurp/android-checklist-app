@@ -10,4 +10,7 @@ interface ChecklistRepository {
     suspend fun updateTaskStatus(checklistId: String, taskId: String, isCompleted: Boolean)
     suspend fun deleteChecklist(id: String)
     suspend fun getActiveChecklistsCount(templateId: String): Int
+    suspend fun updateTaskText(checklistId: String, taskId: String, newText: String)
+    suspend fun deleteTask(checklistId: String, taskId: String)
+    suspend fun addTask(checklistId: String, text: String)
 }

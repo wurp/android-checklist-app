@@ -64,4 +64,13 @@ interface ChecklistDao {
     
     @Query("SELECT * FROM checklist_tasks WHERE id = :id")
     suspend fun getTaskById(id: String): ChecklistTaskEntity?
+    
+    @Delete
+    suspend fun deleteChecklistTask(task: ChecklistTaskEntity)
+    
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertChecklistTask(task: ChecklistTaskEntity)
+    
+    @Query("SELECT MAX(orderIndex) FROM checklist_tasks WHERE checklistId = :checklistId")
+    suspend fun getMaxOrderIndex(checklistId: String): Int?
 }

@@ -13,7 +13,7 @@ import com.checklist.app.data.database.entities.*
         ChecklistEntity::class,
         ChecklistTaskEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

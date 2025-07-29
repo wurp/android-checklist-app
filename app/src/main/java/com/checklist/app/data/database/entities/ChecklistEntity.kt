@@ -1,19 +1,10 @@
 package com.checklist.app.data.database.entities
 
 import androidx.room.Entity
-import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 
 @Entity(
-    tableName = "checklists",
-    foreignKeys = [
-        ForeignKey(
-            entity = TemplateEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["templateId"],
-            onDelete = ForeignKey.CASCADE
-        )
-    ]
+    tableName = "checklists"
 )
 data class ChecklistEntity(
     @PrimaryKey

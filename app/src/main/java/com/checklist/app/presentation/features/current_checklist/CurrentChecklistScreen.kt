@@ -140,7 +140,7 @@ fun CurrentChecklistScreen(
                                 ) {
                                     Icon(
                                         Icons.Default.Add,
-                                        contentDescription = "Add Task"
+                                        contentDescription = null // Remove redundant content description
                                     )
                                 }
                             }
@@ -336,6 +336,8 @@ fun AddTaskDialog(
     val focusRequester = remember { FocusRequester() }
     
     LaunchedEffect(Unit) {
+        // Add a small delay to ensure the dialog is fully composed before requesting focus
+        kotlinx.coroutines.delay(100)
         focusRequester.requestFocus()
     }
     
@@ -377,7 +379,6 @@ fun AddTaskDialog(
         confirmButton = {
             TextButton(
                 onClick = { onAdd(text) },
-                enabled = text.isNotBlank(),
                 modifier = Modifier.semantics { contentDescription = "Save new task" }
             ) {
                 Text("Add")

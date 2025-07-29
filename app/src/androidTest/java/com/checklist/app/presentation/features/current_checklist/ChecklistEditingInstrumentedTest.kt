@@ -208,6 +208,7 @@ class ChecklistEditingInstrumentedTest {
         var tasks by mutableStateOf(createTestTasks())
         var editingTaskId by mutableStateOf<String?>(null)
         var editError by mutableStateOf<String?>(null)
+        var editText by mutableStateOf("")
         
         composeTestRule.setContent {
             TestableChecklistUI(
@@ -215,7 +216,10 @@ class ChecklistEditingInstrumentedTest {
                 isEditMode = isEditMode,
                 onEditModeToggle = { isEditMode = !isEditMode },
                 editingTaskId = editingTaskId,
-                onStartEditingTask = { taskId -> editingTaskId = taskId },
+                onStartEditingTask = { taskId -> 
+                    editingTaskId = taskId
+                    editText = tasks.find { it.id == taskId }?.text ?: ""
+                },
                 onCancelEditingTask = { editingTaskId = null },
                 editError = editError,
                 onTaskUpdate = { taskId, newText ->
@@ -296,7 +300,7 @@ class ChecklistEditingInstrumentedTest {
         
         // Confirm deletion
         composeTestRule.onNodeWithText("Delete Task?").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Confirm").performClick()
+        composeTestRule.onNodeWithText("Delete").performClick()
         composeTestRule.waitForIdle()
         
         // Verify task is deleted
@@ -513,7 +517,7 @@ class ChecklistEditingInstrumentedTest {
         
         // 2. Delete second task
         composeTestRule.onAllNodesWithContentDescription("Delete task")[1].performClick()
-        composeTestRule.onNodeWithText("Confirm").performClick()
+        composeTestRule.onNodeWithText("Delete").performClick()
         composeTestRule.waitForIdle()
         
         // 3. Add new task
@@ -718,7 +722,7 @@ private fun TestableChecklistUI(
                         // Checkbox (disabled in edit mode)
                         Checkbox(
                             checked = task.isCompleted,
-                            onCheckedChange = null,
+                            onCheckedChange = if (isEditMode) null else { _ -> {} },
                             enabled = !isEditMode,
                             modifier = Modifier.testTag("task-checkbox")
                         )
@@ -762,6 +766,7 @@ private fun TestableChecklistUI(
                         onClick = onShowAddDialog,
                         modifier = Modifier
                             .fillMaxWidth()
+                            .testTag("add-new-task-card")
                             .semantics { contentDescription = "Add new task" }
                     ) {
                         Row(
@@ -812,7 +817,7 @@ private fun TestableChecklistUI(
                     TextButton(
                         onClick = { 
                             if (editText.trim().isEmpty()) {
-                                // In real app, would set error
+                                // Don't save, error will be shown
                             } else {
                                 onTaskUpdate(taskToEdit.id, editText)
                             }
@@ -843,9 +848,9 @@ private fun TestableChecklistUI(
             confirmButton = {
                 TextButton(
                     onClick = onConfirmDelete,
-                    modifier = Modifier.semantics { contentDescription = "Confirm" }
+                    modifier = Modifier.semantics { contentDescription = "Delete" }
                 ) {
-                    Text("Confirm")
+                    Text("Delete")
                 }
             },
             dismissButton = {
@@ -889,7 +894,7 @@ private fun TestableChecklistUI(
                 TextButton(
                     onClick = { 
                         if (newTaskText.trim().isEmpty()) {
-                            // In real app, would set error
+                            // Don't save, error will be shown
                         } else {
                             onTaskAdd(newTaskText)
                         }

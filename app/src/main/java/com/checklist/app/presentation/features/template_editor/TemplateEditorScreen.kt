@@ -26,6 +26,9 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -45,6 +48,13 @@ fun TemplateEditorScreen(
     
     LaunchedEffect(templateId) {
         viewModel.loadTemplate(templateId)
+    }
+    
+    // Navigate back when save is complete
+    LaunchedEffect(state.saveComplete) {
+        if (state.saveComplete) {
+            onNavigateBack()
+        }
     }
     
     BackHandler(enabled = state.hasUnsavedChanges) {
@@ -73,22 +83,21 @@ fun TemplateEditorScreen(
                         Icon(Icons.Default.List, contentDescription = "Import from text")
                     }
                     TextButton(
-                        onClick = {
-                            viewModel.saveTemplate()
-                            onNavigateBack()
-                        },
-                        enabled = state.canSave
+                        onClick = { viewModel.saveTemplate() },
+                        enabled = state.canSave,
+                        modifier = Modifier.semantics { contentDescription = "Save template" }
                     ) {
-                        Text("SAVE")
+                        Text(if (state.isSaving) "SAVING..." else "SAVE")
                     }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { viewModel.addStep() }
+                onClick = { viewModel.addStep() },
+                modifier = Modifier.semantics { contentDescription = "Add step" }
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Step")
+                Icon(Icons.Default.Add, contentDescription = "Add step")
             }
         }
     ) { paddingValues ->
@@ -103,7 +112,8 @@ fun TemplateEditorScreen(
                 label = { Text("Template Name") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(16.dp)
+                    .testTag("template-name-field"),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(
@@ -382,10 +392,9 @@ fun StepItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            // FIXED HEIGHT: Must match our calculations for accurate drag behavior
-            // WHY 80dp: totalItemHeightDp (88dp) - itemSpacingDp (8dp) = 80dp
-            // CRITICAL: If this doesn't match, drag calculations will be off
-            .height(80.dp)
+            // MIN HEIGHT: Allows card to expand for multiline content
+            // WHY 80dp minimum: Maintains drag calculations while allowing expansion
+            .defaultMinSize(minHeight = 80.dp)
             // DRAG OFFSET: Apply the vertical offset for the dragged item
             // WHY IntOffset: This offset is IN ADDITION to any offset from the parent Box
             // WHY roundToInt(): Compose requires integer pixel values
@@ -453,27 +462,34 @@ fun StepItem(
                     .weight(1f)
                     // CLICK HANDLER: Tap to edit functionality
                     .clickable { 
-                        // Enter edit mode
-                        isEditing = true
-                        // SYNC TEXT: Ensure edit field shows current step text
-                        // WHY: In case step prop changed since last edit (e.g., from reordering)
-                        editText = step
+                        if (!isEditing) {
+                            // Enter edit mode
+                            isEditing = true
+                            // SYNC TEXT: Ensure edit field shows current step text
+                            // WHY: In case step prop changed since last edit (e.g., from reordering)
+                            editText = step
+                        }
                     }
+                    // Add test tag to the Box container
+                    .testTag("step-$index")
             ) {
                 if (isEditing) {
                     // EDIT MODE: Show text field for editing
                     TextField(
                         value = editText,
-                        onValueChange = { editText = it },
+                        onValueChange = { 
+                            editText = it
+                            // SAVE ON EVERY CHANGE: Update parent immediately to prevent data loss
+                            onStepChange(it)
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .focusRequester(focusRequester),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        singleLine = false,
+                        maxLines = 5,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
                         keyboardActions = KeyboardActions(
                             onDone = {
-                                // SAVE CHANGES: Notify parent of new text
-                                onStepChange(editText)
                                 // EXIT EDIT MODE: Return to display mode
                                 isEditing = false
                             }
@@ -494,7 +510,8 @@ fun StepItem(
                     Text(
                         text = step,
                         modifier = Modifier.padding(vertical = 12.dp),
-                        style = MaterialTheme.typography.bodyLarge
+                        style = MaterialTheme.typography.bodyLarge,
+                        maxLines = 5
                     )
                 }
             }

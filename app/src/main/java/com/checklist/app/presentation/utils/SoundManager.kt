@@ -7,10 +7,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class SoundManager @Inject constructor(
+open class SoundManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    fun playCompletionChime() {
+    open fun playCompletionChime() {
         try {
             val notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
             val ringtone = RingtoneManager.getRingtone(context, notification)

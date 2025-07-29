@@ -87,3 +87,6 @@ lint/reports/
 
 # temporary files
 *.tmp
+
+debug-working/**
+DRAG_REORDER_BUG.md

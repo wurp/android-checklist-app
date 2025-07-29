@@ -75,6 +75,8 @@ Run several checklists simultaneously. Start your morning routine while keeping 
 • Material Design interface
 • No ads, no subscriptions
 • Your data stays on your device
+• Edit active checklists on the fly
+• Multiline task support
 
 Perfect for:
 - Daily routines

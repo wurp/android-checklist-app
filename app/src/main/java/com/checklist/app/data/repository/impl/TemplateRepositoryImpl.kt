@@ -24,16 +24,20 @@ class TemplateRepositoryImpl @Inject constructor(
     }
     
     override suspend fun createTemplate(name: String): String {
+        android.util.Log.d("TemplateRepo", "createTemplate() called with name: $name")
         val template = Template(name = name, steps = emptyList())
         templateDao.insertTemplate(template.toEntity())
+        android.util.Log.d("TemplateRepo", "Template inserted with ID: ${template.id}")
         return template.id
     }
     
     override suspend fun updateTemplate(template: Template) {
+        android.util.Log.d("TemplateRepo", "updateTemplate() called - ID: ${template.id}, name: ${template.name}, steps: ${template.steps.size}")
         templateDao.updateTemplateWithSteps(
             template.copy(updatedAt = System.currentTimeMillis()).toEntity(),
             template.toStepEntities()
         )
+        android.util.Log.d("TemplateRepo", "Template update completed")
     }
     
     override suspend fun deleteTemplate(id: String) {

@@ -33,7 +33,8 @@ This document outlines the technical architecture for the Android Checklist appl
 com.checklist.app/
 ├── di/                      # Dependency injection modules
 │   ├── AppModule.kt
-│   └── DatabaseModule.kt
+│   ├── DatabaseModule.kt
+│   └── TestChecklistModule.kt  # Test doubles for instrumented tests
 ├── data/                    # Data layer
 │   ├── database/
 │   │   ├── AppDatabase.kt
@@ -89,7 +90,7 @@ com.checklist.app/
 │   │   │   └── components/
 │   │   │       └── TemplateItem.kt
 │   │   ├── template_editor/
-│   │   │   ├── TemplateEditorScreen.kt
+│   │   │   ├── TemplateEditorScreen.kt  # Supports multiline task editing
 │   │   │   ├── TemplateEditorViewModel.kt
 │   │   │   └── components/
 │   │   │       ├── StepItem.kt
@@ -105,9 +106,10 @@ com.checklist.app/
 │   │       └── components/
 │   │           └── TaskItem.kt
 │   └── utils/
-│       ├── HapticManager.kt
-│       └── SoundManager.kt
-└── ChecklistApplication.kt
+│       ├── HapticManager.kt      # Open class for test doubles
+│       └── SoundManager.kt       # Open class for test doubles
+├── ChecklistApplication.kt
+└── HiltTestRunner.kt            # Custom test runner for Hilt integration
 
 ```
 
@@ -319,6 +321,12 @@ iOS/
 - Critical user journeys
 - Accessibility compliance
 - Edge cases handling
+
+### Instrumented Tests
+- End-to-end checklist editing flows
+- Hilt dependency injection integration
+- Real component testing with test doubles
+- Haptic and sound feedback verification
 
 ## Build & Deployment
 

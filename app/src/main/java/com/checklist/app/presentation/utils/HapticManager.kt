@@ -10,7 +10,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class HapticManager @Inject constructor(
+open class HapticManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     private val vibrator: Vibrator? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -21,11 +21,11 @@ class HapticManager @Inject constructor(
         context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
     }
     
-    fun singleBuzz() {
+    open fun singleBuzz() {
         vibrate(50L)
     }
     
-    fun tripleBuzz() {
+    open fun tripleBuzz() {
         val pattern = longArrayOf(0, 50, 50, 50, 50, 50)
         vibrate(pattern)
     }

@@ -31,7 +31,11 @@ class TemplateEditorViewModel @Inject constructor(
                 TemplateEditorState(
                     name = "",
                     steps = listOf(""),
-                    hasUnsavedChanges = false
+                    hasUnsavedChanges = false,
+                    showUnsavedChangesDialog = false,
+                    showImportDialog = false,
+                    isSaving = false,
+                    saveComplete = false
                 )
             }
         } else {
@@ -43,7 +47,11 @@ class TemplateEditorViewModel @Inject constructor(
                         TemplateEditorState(
                             name = template.name,
                             steps = template.steps.ifEmpty { listOf("") },
-                            hasUnsavedChanges = false
+                            hasUnsavedChanges = false,
+                            showUnsavedChangesDialog = false,
+                            showImportDialog = false,
+                            isSaving = false,
+                            saveComplete = false
                         )
                     }
                 }
@@ -111,30 +119,50 @@ class TemplateEditorViewModel @Inject constructor(
     
     fun saveTemplate() {
         viewModelScope.launch {
+            android.util.Log.d("TemplateEditorVM", "saveTemplate() started")
+            _state.update { it.copy(isSaving = true) }
+            
             val state = _state.value
             val nonEmptySteps = state.steps.filter { it.isNotBlank() }
+            android.util.Log.d("TemplateEditorVM", "Saving template: name='${state.name}', steps=${nonEmptySteps.size}")
             
-            if (currentTemplateId == null) {
-                // Create new template
-                val templateId = templateRepository.createTemplate(state.name)
-                val template = Template(
-                    id = templateId,
-                    name = state.name,
-                    steps = nonEmptySteps
-                )
-                templateRepository.updateTemplate(template)
-            } else {
-                // Update existing template
-                val template = Template(
-                    id = currentTemplateId!!,
-                    name = state.name,
-                    steps = nonEmptySteps,
-                    createdAt = originalTemplate?.createdAt ?: System.currentTimeMillis()
-                )
-                templateRepository.updateTemplate(template)
+            try {
+                if (currentTemplateId == null) {
+                    // Create new template
+                    android.util.Log.d("TemplateEditorVM", "Creating new template")
+                    val templateId = templateRepository.createTemplate(state.name)
+                    android.util.Log.d("TemplateEditorVM", "Created template with ID: $templateId")
+                    val template = Template(
+                        id = templateId,
+                        name = state.name,
+                        steps = nonEmptySteps
+                    )
+                    templateRepository.updateTemplate(template)
+                    android.util.Log.d("TemplateEditorVM", "Updated template with steps")
+                } else {
+                    // Update existing template
+                    android.util.Log.d("TemplateEditorVM", "Updating existing template: $currentTemplateId")
+                    val template = Template(
+                        id = currentTemplateId!!,
+                        name = state.name,
+                        steps = nonEmptySteps,
+                        createdAt = originalTemplate?.createdAt ?: System.currentTimeMillis()
+                    )
+                    templateRepository.updateTemplate(template)
+                    android.util.Log.d("TemplateEditorVM", "Template updated")
+                }
+                
+                android.util.Log.d("TemplateEditorVM", "Save successful, setting saveComplete=true")
+                _state.update { it.copy(
+                    hasUnsavedChanges = false,
+                    isSaving = false,
+                    saveComplete = true
+                ) }
+            } catch (e: Exception) {
+                android.util.Log.e("TemplateEditorVM", "Save failed", e)
+                _state.update { it.copy(isSaving = false) }
+                // In a real app, we'd show an error message
             }
-            
-            _state.update { it.copy(hasUnsavedChanges = false) }
         }
     }
     
@@ -185,8 +213,10 @@ data class TemplateEditorState(
     val steps: List<String> = listOf(""),
     val hasUnsavedChanges: Boolean = false,
     val showUnsavedChangesDialog: Boolean = false,
-    val showImportDialog: Boolean = false
+    val showImportDialog: Boolean = false,
+    val isSaving: Boolean = false,
+    val saveComplete: Boolean = false
 ) {
     val canSave: Boolean
-        get() = name.isNotBlank() && steps.any { it.isNotBlank() }
+        get() = name.isNotBlank() && steps.any { it.isNotBlank() } && !isSaving
 }

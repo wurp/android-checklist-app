@@ -25,6 +25,7 @@ A mobile checklist application that allows users to create reusable templates an
 - **Haptic Feedback**: Single vibration on task completion
 - **Progress Persistence**: Maintain state between app sessions
 - **Completion Celebration**: Triple vibration + chime when all tasks complete
+- **Edit Mode**: Allows editing task text, adding new tasks, and deleting tasks from active checklists
 
 ## User Interface Structure
 
@@ -56,6 +57,12 @@ The app features a 3-tab interface on the main screen:
      - Checklist name
      - Overall progress
      - Delete button (garbage can icon)
+     - Edit button (pencil icon) to enter edit mode
+   - Edit mode features:
+     - Edit task text inline
+     - Delete individual tasks
+     - Add new tasks with FAB
+     - Checkboxes disabled during editing
    - Empty state when no checklist selected
 
 ### Secondary Screens
@@ -64,7 +71,7 @@ The app features a 3-tab interface on the main screen:
 - Text input for template name at top
 - Scrollable list of steps/tasks:
   - Each step shows text and delete (garbage can) icon
-  - Tap step text to edit inline
+  - Tap step text to edit inline (supports multiline text with up to 5 visible lines)
   - Long press and drag to reorder steps
 - Floating Action Button (+) to add new step
 - Save button in toolbar

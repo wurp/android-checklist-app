@@ -12,6 +12,7 @@ import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
+import org.junit.After
 import org.junit.Rule
 import org.junit.Test
 import javax.inject.Inject
@@ -40,12 +41,33 @@ class TemplateManagementEndToEndTest {
     fun setup() {
         hiltRule.inject()
         
-        // Log existing templates in database
+        // Clean up any existing test data first
         runBlocking {
+            // Delete all checklists
+            val existingChecklists = checklistRepository.getAllChecklists().first()
+            existingChecklists.forEach { checklist ->
+                checklistRepository.deleteChecklist(checklist.id)
+            }
+            
+            // Delete test templates from previous runs
             val existingTemplates = templateRepository.getAllTemplates().first()
-            android.util.Log.d("TestSetup", "=== Test Starting: ${Thread.currentThread().stackTrace[3].methodName} ===")
-            android.util.Log.d("TestSetup", "Existing templates in database: ${existingTemplates.size}")
             existingTemplates.forEach { template ->
+                if (template.name.contains("Shopping List") ||
+                    template.name.contains("Test Morning Routine") ||
+                    template.name.contains("Enhanced Morning Routine") ||
+                    template.name.contains("Temporary Template") ||
+                    template.name.contains("Template With Checklist") ||
+                    template.name.contains("Unsaved Template") ||
+                    template.name.contains("Complex Instructions")) {
+                    templateRepository.deleteTemplate(template.id)
+                }
+            }
+            
+            // Log remaining templates
+            val remainingTemplates = templateRepository.getAllTemplates().first()
+            android.util.Log.d("TestSetup", "=== Test Starting: ${Thread.currentThread().stackTrace[3].methodName} ===")
+            android.util.Log.d("TestSetup", "Templates after cleanup: ${remainingTemplates.size}")
+            remainingTemplates.forEach { template ->
                 android.util.Log.d("TestSetup", "  - Template: '${template.name}' (ID: ${template.id})")
             }
         }
@@ -57,6 +79,32 @@ class TemplateManagementEndToEndTest {
             hasText("Templates") and hasRole(Role.Tab)
         ).assertIsSelected()
         composeTestRule.waitForIdle()
+    }
+    
+    @After
+    fun tearDown() {
+        // Clean up created data
+        runBlocking {
+            // Delete all checklists
+            val checklists = checklistRepository.getAllChecklists().first()
+            checklists.forEach { checklist ->
+                checklistRepository.deleteChecklist(checklist.id)
+            }
+            
+            // Delete test templates
+            val templates = templateRepository.getAllTemplates().first()
+            templates.forEach { template ->
+                if (template.name.contains("Shopping List") ||
+                    template.name.contains("Test Morning Routine") ||
+                    template.name.contains("Enhanced Morning Routine") ||
+                    template.name.contains("Temporary Template") ||
+                    template.name.contains("Template With Checklist") ||
+                    template.name.contains("Unsaved Template") ||
+                    template.name.contains("Complex Instructions")) {
+                    templateRepository.deleteTemplate(template.id)
+                }
+            }
+        }
     }
     
     // Test 1: Create Template Flow
@@ -109,7 +157,7 @@ class TemplateManagementEndToEndTest {
         
         // Wait for save to complete and navigation to happen
         android.util.Log.d("Test", "Waiting for save to complete...")
-        Thread.sleep(3000) // Increased delay
+        Thread.sleep(100)
         composeTestRule.waitForIdle()
         
         // Verify template was saved to repository first
@@ -152,8 +200,8 @@ class TemplateManagementEndToEndTest {
     // Test 3: Edit Existing Template
     @Test
     fun testEditExistingTemplate() {
-        // First create a template with unique name
-        val templateName = "Test Morning Routine ${System.currentTimeMillis()}"
+        // First create a template with unique name to avoid conflicts
+        val templateName = "Test Edit Template ${System.currentTimeMillis()}"
         val templateId = runBlocking {
             val id = templateRepository.createTemplate(templateName)
             val template = templateRepository.getTemplate(id)!!
@@ -205,7 +253,7 @@ class TemplateManagementEndToEndTest {
         composeTestRule.onNodeWithContentDescription("Save template").performClick()
         
         // Wait for save to complete and navigation to happen
-        Thread.sleep(1000)
+        Thread.sleep(100)
         composeTestRule.waitForIdle()
         
         composeTestRule.onNodeWithText("Enhanced Morning Routine").assertIsDisplayed()
@@ -249,11 +297,9 @@ class TemplateManagementEndToEndTest {
         ).assertExists()
         
         // Find delete button within the same card
-        composeTestRule.onAllNodes(
-            hasContentDescription("Delete")
-        ).filter(
-            hasAnyAncestor(hasText(templateName))
-        )[0].performClick()
+        composeTestRule.onNode(
+            hasContentDescription("Delete") and hasAnyAncestor(hasText(templateName))
+        ).performClick()
         composeTestRule.waitForIdle()
         
         // Verify confirmation dialog
@@ -268,11 +314,9 @@ class TemplateManagementEndToEndTest {
         composeTestRule.onNodeWithText(templateName).assertIsDisplayed()
         
         // Try delete again and confirm
-        composeTestRule.onAllNodes(
-            hasContentDescription("Delete")
-        ).filter(
-            hasAnyAncestor(hasText(templateName))
-        )[0].performClick()
+        composeTestRule.onNode(
+            hasContentDescription("Delete") and hasAnyAncestor(hasText(templateName))
+        ).performClick()
         composeTestRule.waitForIdle()
         
         composeTestRule.onNodeWithText("Delete").performClick()
@@ -313,15 +357,13 @@ class TemplateManagementEndToEndTest {
         }
         
         // Give UI time to update
-        Thread.sleep(500)
+        Thread.sleep(100)
         composeTestRule.waitForIdle()
         
         // Try to delete the template
-        composeTestRule.onAllNodes(
-            hasContentDescription("Delete")
-        ).filter(
-            hasAnyAncestor(hasText(templateName))
-        )[0].performClick()
+        composeTestRule.onNode(
+            hasContentDescription("Delete") and hasAnyAncestor(hasText(templateName))
+        ).performClick()
         composeTestRule.waitForIdle()
         
         // Should show delete confirmation dialog
@@ -408,17 +450,23 @@ class TemplateManagementEndToEndTest {
         // Click on step to enter edit mode
         composeTestRule.onNodeWithTag("step-0").performClick()
         composeTestRule.waitForIdle()
+        // Note: performTextInput may not properly handle newlines in some cases
+        // Try using performTextReplacement which better handles multiline text
         composeTestRule.onNode(
             hasParent(hasTestTag("step-0")) and hasSetTextAction()
         ).performTextInput(
             "This is a very long instruction that\nspans multiple lines\nand contains detailed steps"
         )
         
+        // Wait for text input to be processed
+        composeTestRule.waitForIdle()
+        Thread.sleep(100)
+        
         // Save template
         composeTestRule.onNodeWithContentDescription("Save template").performClick()
         
         // Wait for save to complete and navigation to happen
-        Thread.sleep(1000)
+        Thread.sleep(100)
         composeTestRule.waitForIdle()
         
         // Verify it saved correctly
@@ -427,7 +475,11 @@ class TemplateManagementEndToEndTest {
             val saved = templates.find { it.name == "Complex Instructions" }
             assertNotNull("Template should be saved", saved)
             assertEquals(1, saved?.steps?.size)
-            assertTrue("Step should contain newlines", saved?.steps?.get(0)?.contains("\n") ?: false)
+            saved?.steps?.get(0)?.let { step ->
+                android.util.Log.d("Test", "Saved step: '$step'")
+                android.util.Log.d("Test", "Step contains newlines: ${step.contains("\n")}")
+                assertTrue("Step should contain newlines", step.contains("\n"))
+            } ?: fail("No step found")
         }
         
         // Edit to verify multiline display

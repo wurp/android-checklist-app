@@ -64,8 +64,10 @@ fun CurrentChecklistScreen(
                         title = {
                             Column {
                                 Text(currentChecklist.templateName)
+                                val completedCount = currentChecklist.tasks.count { it.isCompleted }
+                                val totalCount = currentChecklist.tasks.size
                                 Text(
-                                    text = "${(currentChecklist.progress * 100).toInt()}%",
+                                    text = "$completedCount of $totalCount completed",
                                     style = MaterialTheme.typography.labelMedium
                                 )
                             }
@@ -136,7 +138,9 @@ fun CurrentChecklistScreen(
                             ) {
                                 FloatingActionButton(
                                     onClick = { viewModel.showAddTaskDialog() },
-                                    modifier = Modifier.semantics { contentDescription = "Add new task" }
+                                    modifier = Modifier
+                                        .testTag("add-new-task-card")
+                                        .semantics { contentDescription = "Add new task" }
                                 ) {
                                     Icon(
                                         Icons.Default.Add,
@@ -238,9 +242,17 @@ fun TaskItem(
         ) {
             Checkbox(
                 checked = task.isCompleted,
-                onCheckedChange = { onToggle() },
+                onCheckedChange = if (!isEditMode) {{ onToggle() }} else null,
                 enabled = !isEditMode,
-                modifier = Modifier.testTag("task-checkbox")
+                modifier = Modifier
+                    .testTag("task-checkbox")
+                    .semantics {
+                        contentDescription = if (task.isCompleted) {
+                            "${task.text} completed"
+                        } else {
+                            "Mark ${task.text} as complete"
+                        }
+                    }
             )
             
             if (isEditing) {

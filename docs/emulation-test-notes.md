@@ -42,10 +42,11 @@ fun setup() {
 **Problem**: Multiple UI elements with the same text can cause ambiguous matches.
 
 **Best Practices**:
-- Use specific matchers: `hasText("Templates") and hasRole(Role.Tab)`
 - Use test tags for unique identification: `Modifier.testTag("template-name-field")`
 - Be aware of parent-child relationships: `hasParent(hasTestTag("step-0"))`
 - For TextFields in edit mode, use: `hasParent(hasTestTag("step-0")) and hasSetTextAction()`
+- When multiple elements exist, use indexed selection: `onAllNodesWithText("Templates")[0]`
+- Prefer `onAllNodes().onFirst()` over `onNode()` when duplicates are possible
 
 ### 4. Sample Data and Test Isolation
 **Problem**: Sample templates are automatically loaded on app startup, persisting across test runs.
@@ -152,6 +153,121 @@ runBlocking {
     val templates = templateRepository.getAllTemplates().first()
     Log.d("DEBUG", "Templates: ${templates.map { it.name }}")
 }
+```
+
+## Navigation and Element Selection Guide
+
+### Navigation Patterns
+
+#### Tab Navigation
+```kotlin
+// Navigate to specific tab
+composeTestRule.onNodeWithText("Templates").performClick()
+composeTestRule.onNodeWithText("Active").performClick()
+composeTestRule.onNodeWithText("Current").performClick()
+
+// Note: The app auto-navigates to Current tab when clicking a checklist
+```
+
+#### Screen Navigation
+```kotlin
+// Templates → Template Editor
+composeTestRule.onNodeWithText(templateName).performClick()
+
+// Active → Current Checklist (auto-switches tab)
+composeTestRule.onNodeWithText(checklistName).performClick()
+
+// Navigate back
+composeTestRule.onNodeWithContentDescription("Navigate back").performClick()
+```
+
+#### Edit Mode Navigation
+```kotlin
+// Enter edit mode
+composeTestRule.onNodeWithContentDescription("Edit checklist").performClick()
+
+// Exit edit mode
+composeTestRule.onNodeWithContentDescription("Done editing").performClick()
+```
+
+### Element Selection Strategies
+
+#### 1. Prefer Test Tags
+```kotlin
+// Good - Unambiguous
+composeTestRule.onNodeWithTag("template-name-field")
+composeTestRule.onNodeWithTag("task-checkbox")
+composeTestRule.onNodeWithTag("add-new-task-card")
+```
+
+#### 2. Use Content Descriptions for Actions
+```kotlin
+// Good - Clear intent
+composeTestRule.onNodeWithContentDescription("Edit task")
+composeTestRule.onNodeWithContentDescription("Delete task")
+composeTestRule.onNodeWithContentDescription("Save task")
+```
+
+#### 3. Handle Multiple Elements
+```kotlin
+// When multiple elements with same text exist
+composeTestRule.onAllNodesWithText("Templates").onFirst().performClick()
+composeTestRule.onAllNodesWithContentDescription("Edit task")[0].performClick()
+
+// Check element count
+val editButtons = composeTestRule.onAllNodesWithContentDescription("Edit task").fetchSemanticsNodes()
+assertTrue(editButtons.isNotEmpty())
+```
+
+#### 4. Scrolling to Elements
+```kotlin
+// Scroll to find element (especially in long lists)
+composeTestRule.onNode(hasScrollAction()).performScrollToNode(
+    hasText("Task 100")
+)
+
+// Scroll to test tag
+composeTestRule.onNode(hasScrollAction()).performScrollToNode(
+    hasTestTag("add-new-task-card")
+)
+```
+
+#### 5. Dynamic Content
+```kotlin
+// Generate unique names for test isolation
+val templateName = "Test Template ${System.currentTimeMillis()}"
+
+// Wait for UI updates
+composeTestRule.waitForIdle()
+
+// Add delays for async operations
+Thread.sleep(500) // Only when necessary
+```
+
+### Common Pitfalls and Solutions
+
+#### 1. Role-based Selection (Deprecated)
+```kotlin
+// Bad - Role.Tab not directly supported
+composeTestRule.onNode(hasText("Templates") and hasRole(Role.Tab))
+
+// Good - Use text directly
+composeTestRule.onNodeWithText("Templates")
+```
+
+#### 2. Checkbox Behavior in Edit Mode
+```kotlin
+// Checkboxes in edit mode:
+// - Still report as enabled
+// - But onCheckedChange is null, so clicks don't toggle
+// - Test the behavior, not the enabled state
+```
+
+#### 3. Performance Test Timeouts
+```kotlin
+// Adjust timeouts for large datasets
+assertTrue("Scrolling should complete in reasonable time", scrollTime < 2000)
+// Instead of strict 1000ms limits
 ```
 
 ## Key Architecture Decisions for Testability

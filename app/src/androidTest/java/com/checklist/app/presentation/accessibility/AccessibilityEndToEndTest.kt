@@ -14,10 +14,12 @@ import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
+import org.junit.After
 import org.junit.Rule
 import org.junit.Test
 import javax.inject.Inject
 import org.junit.Assert.*
+import kotlinx.coroutines.flow.first
 
 /**
  * Accessibility tests for screen reader support, keyboard navigation, and touch targets.
@@ -40,23 +42,82 @@ class AccessibilityEndToEndTest {
     
     // Note: UIAutomator dependency would need to be added for keyboard navigation tests
     private lateinit var testTemplateId: String
+    private lateinit var testTemplateName: String
+    private val createdChecklistIds = mutableListOf<String>()
     
     @Before
     fun setup() {
         hiltRule.inject()
         // device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         
-        // Create test data
+        // Use unique names to avoid conflicts
+        testTemplateName = "Accessibility Test Template ${System.currentTimeMillis()}"
+        
+        // Clean up any existing test data first
         runBlocking {
-            testTemplateId = templateRepository.createTemplate("Accessibility Test Template")
+            // Delete all existing test templates and checklists
+            val existingTemplates = templateRepository.getAllTemplates().first()
+            existingTemplates.forEach { template ->
+                if (template.name.contains("Accessibility Test Template")) {
+                    templateRepository.deleteTemplate(template.id)
+                }
+            }
+            
+            val existingChecklists = checklistRepository.getAllChecklists().first()
+            existingChecklists.forEach { checklist ->
+                if (checklist.templateName.contains("Accessibility Test Template")) {
+                    checklistRepository.deleteChecklist(checklist.id)
+                }
+            }
+            
+            // Create test data with unique name
+            testTemplateId = templateRepository.createTemplate(testTemplateName)
             val template = templateRepository.getTemplate(testTemplateId)!!
             templateRepository.updateTemplate(
                 template.copy(steps = listOf("First Task", "Second Task", "Third Task"))
             )
-            checklistRepository.createChecklistFromTemplate(testTemplateId)
+            val checklistId = checklistRepository.createChecklistFromTemplate(testTemplateId)
+            createdChecklistIds.add(checklistId)
         }
         
         composeTestRule.waitForIdle()
+    }
+    
+    @After
+    fun tearDown() {
+        // Clean up created data
+        runBlocking {
+            // Delete template
+            try {
+                templateRepository.deleteTemplate(testTemplateId)
+            } catch (e: Exception) {
+                // Ignore if already deleted
+            }
+            
+            // Delete all created checklists
+            createdChecklistIds.forEach { checklistId ->
+                try {
+                    checklistRepository.deleteChecklist(checklistId)
+                } catch (e: Exception) {
+                    // Ignore if already deleted
+                }
+            }
+            
+            // Clean up any additional test data that may have been created
+            val remainingTemplates = templateRepository.getAllTemplates().first()
+            remainingTemplates.forEach { template ->
+                if (template.name.contains("Accessibility Test Template")) {
+                    templateRepository.deleteTemplate(template.id)
+                }
+            }
+            
+            val remainingChecklists = checklistRepository.getAllChecklists().first()
+            remainingChecklists.forEach { checklist ->
+                if (checklist.templateName.contains("Accessibility Test Template")) {
+                    checklistRepository.deleteChecklist(checklist.id)
+                }
+            }
+        }
     }
     
     // Test 1: Content Descriptions for Interactive Elements
@@ -75,12 +136,13 @@ class AccessibilityEndToEndTest {
         
         // Template items should have appropriate descriptions
         composeTestRule.onNode(
-            hasText("Accessibility Test Template") and hasClickAction()
+            hasText(testTemplateName) and hasClickAction()
         ).assertExists()
         
         // Delete button should have description
-        composeTestRule.onNodeWithContentDescription("Delete template")
-            .assertExists()
+        composeTestRule.onNode(
+            hasContentDescription("Delete") and hasAnyAncestor(hasText(testTemplateName))
+        ).assertExists()
             .assert(hasClickAction())
         
         // Navigate to Active tab
@@ -91,11 +153,15 @@ class AccessibilityEndToEndTest {
         
         // Checklist items should be accessible
         composeTestRule.onNode(
-            hasText("Accessibility Test Template") and hasClickAction()
+            hasText(testTemplateName) and hasClickAction()
         ).assertExists()
         
         // Progress information should be available
         composeTestRule.onNodeWithText("0% complete").assertExists()
+        
+        // Click on the checklist to select it
+        composeTestRule.onNodeWithText(testTemplateName).performClick()
+        composeTestRule.waitForIdle()
         
         // Navigate to Current tab
         composeTestRule.onNode(
@@ -122,7 +188,7 @@ class AccessibilityEndToEndTest {
             hasText("Active") and hasRole(Role.Tab)
         ).performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Accessibility Test Template").performClick()
+        composeTestRule.onNodeWithText(testTemplateName).performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNode(
             hasText("Current") and hasRole(Role.Tab)
@@ -177,7 +243,7 @@ class AccessibilityEndToEndTest {
             hasText("Active") and hasRole(Role.Tab)
         ).performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Accessibility Test Template").performClick()
+        composeTestRule.onNodeWithText(testTemplateName).performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNode(
             hasText("Current") and hasRole(Role.Tab)
@@ -230,7 +296,7 @@ class AccessibilityEndToEndTest {
             hasText("Active") and hasRole(Role.Tab)
         ).performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Accessibility Test Template").performClick()
+        composeTestRule.onNodeWithText(testTemplateName).performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNode(
             hasText("Current") and hasRole(Role.Tab)
@@ -265,7 +331,7 @@ class AccessibilityEndToEndTest {
             hasText("Active") and hasRole(Role.Tab)
         ).performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Accessibility Test Template").performClick()
+        composeTestRule.onNodeWithText(testTemplateName).performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNode(
             hasText("Current") and hasRole(Role.Tab)
@@ -282,7 +348,7 @@ class AccessibilityEndToEndTest {
             .assert(hasRole(Role.Button))
         
         // Headers should be marked as headings
-        composeTestRule.onNodeWithText("Accessibility Test Template")
+        composeTestRule.onNodeWithText(testTemplateName)
             .assertExists() // Heading semantic would be set in actual implementation
     }
     
@@ -294,7 +360,10 @@ class AccessibilityEndToEndTest {
             hasText("Active") and hasRole(Role.Tab)
         ).performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithContentDescription("Delete").performClick()
+        // Find the delete button for the specific checklist
+        composeTestRule.onNode(
+            hasContentDescription("Delete") and hasAnyAncestor(hasText(testTemplateName))
+        ).performClick()
         composeTestRule.waitForIdle()
         
         // Dialog should be announced
@@ -327,7 +396,7 @@ class AccessibilityEndToEndTest {
             hasText("Active") and hasRole(Role.Tab)
         ).performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Accessibility Test Template").performClick()
+        composeTestRule.onNodeWithText(testTemplateName).performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNode(
             hasText("Current") and hasRole(Role.Tab)
@@ -345,7 +414,7 @@ class AccessibilityEndToEndTest {
         // Text field should be accessible
         composeTestRule.onNodeWithTag("task-edit-field")
             .assert(hasSetTextAction())
-            .assert(hasImeAction(androidx.compose.ui.text.input.ImeAction.Default))
+            .assert(hasImeAction(androidx.compose.ui.text.input.ImeAction.Done))
         
         // Save/Cancel buttons should be labeled
         composeTestRule.onNodeWithContentDescription("Save task")
@@ -376,7 +445,7 @@ class AccessibilityEndToEndTest {
             hasText("Active") and hasRole(Role.Tab)
         ).performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Accessibility Test Template").performClick()
+        composeTestRule.onNodeWithText(testTemplateName).performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNode(
             hasText("Current") and hasRole(Role.Tab)
@@ -424,6 +493,14 @@ class AccessibilityEndToEndTest {
             hasText("Templates") and hasRole(Role.Tab)
         ).assertExists() // Text should be visible
         
+        // Navigate to Active tab and select a checklist
+        composeTestRule.onNode(
+            hasText("Active") and hasRole(Role.Tab)
+        ).performClick()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(testTemplateName).performClick()
+        composeTestRule.waitForIdle()
+        
         // Checkboxes should be clearly visible
         composeTestRule.onNode(
             hasText("Current") and hasRole(Role.Tab)
@@ -446,7 +523,7 @@ class AccessibilityEndToEndTest {
             hasText("Templates") and hasRole(Role.Tab)
         ).performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Accessibility Test Template").performClick()
+        composeTestRule.onNodeWithText(testTemplateName).performClick()
         composeTestRule.waitForIdle()
         
         // Drag handles should have alternative actions for screen readers

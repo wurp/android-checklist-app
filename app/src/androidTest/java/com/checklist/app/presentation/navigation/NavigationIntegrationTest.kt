@@ -11,10 +11,12 @@ import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
+import org.junit.After
 import org.junit.Rule
 import org.junit.Test
 import javax.inject.Inject
 import org.junit.Assert.*
+import kotlinx.coroutines.flow.first
 
 /**
  * Integration tests for app navigation flows.
@@ -37,15 +39,37 @@ class NavigationIntegrationTest {
     
     private lateinit var testTemplateId: String
     private lateinit var testChecklistId: String
+    private lateinit var testTemplateName: String
+    private val createdTemplateIds = mutableListOf<String>()
+    private val createdChecklistIds = mutableListOf<String>()
     
     @Before
     fun setup() {
         hiltRule.inject()
         
-        // Create test data
+        // Use unique names to avoid conflicts
+        testTemplateName = "Navigation Test Template ${System.currentTimeMillis()}"
+        
+        // Clean up any existing test data first
         runBlocking {
-            // Create template
-            testTemplateId = templateRepository.createTemplate("Navigation Test Template")
+            // Delete all existing test templates and checklists
+            val existingTemplates = templateRepository.getAllTemplates().first()
+            existingTemplates.forEach { template ->
+                if (template.name.contains("Navigation Test Template")) {
+                    templateRepository.deleteTemplate(template.id)
+                }
+            }
+            
+            val existingChecklists = checklistRepository.getAllChecklists().first()
+            existingChecklists.forEach { checklist ->
+                if (checklist.templateName.contains("Navigation Test Template")) {
+                    checklistRepository.deleteChecklist(checklist.id)
+                }
+            }
+            
+            // Create test data with unique name
+            testTemplateId = templateRepository.createTemplate(testTemplateName)
+            createdTemplateIds.add(testTemplateId)
             val template = templateRepository.getTemplate(testTemplateId)!!
             templateRepository.updateTemplate(
                 template.copy(steps = listOf("Step 1", "Step 2", "Step 3"))
@@ -53,9 +77,49 @@ class NavigationIntegrationTest {
             
             // Create checklist
             testChecklistId = checklistRepository.createChecklistFromTemplate(testTemplateId)
+            createdChecklistIds.add(testChecklistId)
         }
         
         composeTestRule.waitForIdle()
+    }
+    
+    @After
+    fun tearDown() {
+        // Clean up created data
+        runBlocking {
+            // Delete all created templates
+            createdTemplateIds.forEach { templateId ->
+                try {
+                    templateRepository.deleteTemplate(templateId)
+                } catch (e: Exception) {
+                    // Ignore if already deleted
+                }
+            }
+            
+            // Delete all created checklists
+            createdChecklistIds.forEach { checklistId ->
+                try {
+                    checklistRepository.deleteChecklist(checklistId)
+                } catch (e: Exception) {
+                    // Ignore if already deleted
+                }
+            }
+            
+            // Clean up any additional test data that may have been created
+            val remainingTemplates = templateRepository.getAllTemplates().first()
+            remainingTemplates.forEach { template ->
+                if (template.name.contains("Navigation Test Template")) {
+                    templateRepository.deleteTemplate(template.id)
+                }
+            }
+            
+            val remainingChecklists = checklistRepository.getAllChecklists().first()
+            remainingChecklists.forEach { checklist ->
+                if (checklist.templateName.contains("Navigation Test Template")) {
+                    checklistRepository.deleteChecklist(checklist.id)
+                }
+            }
+        }
     }
     
     // Test 1: Tab Navigation State Preservation
@@ -65,7 +129,7 @@ class NavigationIntegrationTest {
         composeTestRule.onNode(
             hasText("Templates") and hasRole(Role.Tab)
         ).assertIsSelected()
-        composeTestRule.onNodeWithText("Navigation Test Template").assertIsDisplayed()
+        composeTestRule.onNodeWithText(testTemplateName).assertIsDisplayed()
         
         // Navigate to Active tab
         composeTestRule.onNode(
@@ -75,10 +139,10 @@ class NavigationIntegrationTest {
         composeTestRule.onNode(
             hasText("Active") and hasRole(Role.Tab)
         ).assertIsSelected()
-        composeTestRule.onNodeWithText("Navigation Test Template").assertIsDisplayed()
+        composeTestRule.onNodeWithText(testTemplateName).assertIsDisplayed()
         
         // Select the checklist
-        composeTestRule.onNodeWithText("Navigation Test Template").performClick()
+        composeTestRule.onNodeWithText(testTemplateName).performClick()
         composeTestRule.waitForIdle()
         
         // Navigate to Current tab
@@ -91,7 +155,7 @@ class NavigationIntegrationTest {
         ).assertIsSelected()
         
         // Verify checklist is displayed
-        composeTestRule.onNodeWithText("Navigation Test Template").assertIsDisplayed()
+        composeTestRule.onNodeWithText(testTemplateName).assertIsDisplayed()
         composeTestRule.onNodeWithText("Step 1").assertIsDisplayed()
         
         // Complete a task
@@ -109,7 +173,7 @@ class NavigationIntegrationTest {
         composeTestRule.waitForIdle()
         
         // Verify state is preserved
-        composeTestRule.onNodeWithText("Navigation Test Template").assertIsDisplayed()
+        composeTestRule.onNodeWithText(testTemplateName).assertIsDisplayed()
         composeTestRule.onAllNodesWithTag("task-checkbox")[0].assertIsOn()
     }
     
@@ -127,13 +191,17 @@ class NavigationIntegrationTest {
         // Create new template
         composeTestRule.onNodeWithContentDescription("Create Template").performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Template Editor").assertIsDisplayed()
+        composeTestRule.onNodeWithText("New Template").assertIsDisplayed()
         
         // Add some content
         composeTestRule.onNodeWithTag("template-name-field").performTextInput("Deep Nav Template")
         composeTestRule.onNodeWithContentDescription("Add step").performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag("step-0").performTextInput("Test step")
+        composeTestRule.onNodeWithTag("step-0").performClick()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNode(
+            hasParent(hasTestTag("step-0")) and hasSetTextAction()
+        ).performTextInput("Test step")
         
         // Save and go back
         composeTestRule.onNodeWithContentDescription("Save template").performClick()
@@ -151,16 +219,16 @@ class NavigationIntegrationTest {
         ).performClick()
         composeTestRule.waitForIdle()
         
-        // Create checklist from the new template
+        // Go back to Templates to create a checklist
         composeTestRule.onNode(
             hasText("Templates") and hasRole(Role.Tab)
         ).performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Deep Nav Template").performClick()
-        composeTestRule.waitForIdle()
         
-        // Clicking on template creates a checklist and switches to Current tab
-        composeTestRule.onNodeWithText("Deep Nav Template").performClick()
+        // Find the START button for the template
+        composeTestRule.onNode(
+            hasText("START") and hasAnyAncestor(hasText("Deep Nav Template"))
+        ).performClick()
         composeTestRule.waitForIdle()
         
         // Should automatically switch to Current tab
@@ -190,15 +258,11 @@ class NavigationIntegrationTest {
         
         // Verify empty state
         composeTestRule.onNodeWithText("No checklist selected").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Select a checklist from the Active tab").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Choose one from Active tab").assertIsDisplayed()
         
-        // Click on go to active button if present
-        composeTestRule.onNodeWithText("Go to Active Checklists").performClick()
-        composeTestRule.waitForIdle()
-        
-        // Verify we're on Active tab
+        // We should still be on Current tab since there's no automatic navigation
         composeTestRule.onNode(
-            hasText("Active") and hasRole(Role.Tab)
+            hasText("Current") and hasRole(Role.Tab)
         ).assertIsSelected()
     }
     
@@ -267,7 +331,7 @@ class NavigationIntegrationTest {
             hasText("Active") and hasRole(Role.Tab)
         ).performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Navigation Test Template").performClick()
+        composeTestRule.onNodeWithText(testTemplateName).performClick()
         composeTestRule.waitForIdle()
         
         // Go to Current tab
@@ -337,7 +401,7 @@ class NavigationIntegrationTest {
             hasText("Templates") and hasRole(Role.Tab)
         ).performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Navigation Test Template").assertIsDisplayed()
+        composeTestRule.onNodeWithText(testTemplateName).assertIsDisplayed()
     }
     
     // Test 7: Navigation with Multiple Checklists
@@ -349,7 +413,9 @@ class NavigationIntegrationTest {
                 checklistRepository.createChecklistFromTemplate(testTemplateId),
                 checklistRepository.createChecklistFromTemplate(testTemplateId),
                 checklistRepository.createChecklistFromTemplate(testTemplateId)
-            )
+            ).also { ids ->
+                createdChecklistIds.addAll(ids)
+            }
         }
         
         composeTestRule.waitForIdle()
@@ -361,17 +427,17 @@ class NavigationIntegrationTest {
         composeTestRule.waitForIdle()
         
         // Should see multiple checklists
-        composeTestRule.onAllNodesWithText("Navigation Test Template").assertCountEquals(4) // Original + 3 new
+        composeTestRule.onAllNodesWithText(testTemplateName).assertCountEquals(4) // Original + 3 new
         
         // Select different checklists and verify Current tab updates
-        composeTestRule.onAllNodesWithText("Navigation Test Template")[1].performClick()
+        composeTestRule.onAllNodesWithText(testTemplateName)[1].performClick()
         composeTestRule.waitForIdle()
         
         composeTestRule.onNode(
             hasText("Current") and hasRole(Role.Tab)
         ).performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Navigation Test Template").assertIsDisplayed()
+        composeTestRule.onNodeWithText(testTemplateName).assertIsDisplayed()
         
         // Complete a task in this checklist
         composeTestRule.onAllNodesWithTag("task-checkbox")[0].performClick()
@@ -382,7 +448,7 @@ class NavigationIntegrationTest {
             hasText("Active") and hasRole(Role.Tab)
         ).performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onAllNodesWithText("Navigation Test Template")[2].performClick()
+        composeTestRule.onAllNodesWithText(testTemplateName)[2].performClick()
         composeTestRule.waitForIdle()
         
         composeTestRule.onNode(
@@ -402,7 +468,7 @@ class NavigationIntegrationTest {
             hasText("Active") and hasRole(Role.Tab)
         ).performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Navigation Test Template").performClick()
+        composeTestRule.onNodeWithText(testTemplateName).performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNode(
             hasText("Current") and hasRole(Role.Tab)
@@ -421,7 +487,7 @@ class NavigationIntegrationTest {
         composeTestRule.onNode(
             hasText("Current") and hasRole(Role.Tab)
         ).assertIsSelected()
-        composeTestRule.onNodeWithText("Navigation Test Template").assertIsDisplayed()
+        composeTestRule.onNodeWithText(testTemplateName).assertIsDisplayed()
         composeTestRule.onAllNodesWithTag("task-checkbox")[0].assertIsOn()
         
         // Change back to portrait

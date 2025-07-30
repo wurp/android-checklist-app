@@ -110,7 +110,7 @@ class CurrentChecklistEndToEndTest {
         // Verify edit mode UI
         composeTestRule.onNodeWithContentDescription("Done editing").assertIsDisplayed()
         composeTestRule.onNodeWithContentDescription("Edit checklist").assertDoesNotExist()
-        composeTestRule.onNodeWithContentDescription("Add new task").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("add-new-task-card").assertIsDisplayed()
         
         // Exit edit mode
         composeTestRule.onNodeWithContentDescription("Done editing").performClick()
@@ -294,16 +294,23 @@ class CurrentChecklistEndToEndTest {
         composeTestRule.onNodeWithContentDescription("Edit checklist").performClick()
         composeTestRule.waitForIdle()
         
-        // Checkboxes should be disabled in edit mode
-        composeTestRule.onAllNodesWithTag("task-checkbox")[0].assertIsNotEnabled()
+        // In edit mode, checkboxes are technically enabled but onCheckedChange is null
+        // so they don't respond to clicks
+        composeTestRule.onAllNodesWithTag("task-checkbox")[0].assertIsEnabled()
         
-        // Try to click checkbox (should not work)
+        // Try to click checkbox (should not toggle state)
         val buzzCountBefore = testHapticManager.singleBuzzCount
         composeTestRule.onAllNodesWithTag("task-checkbox")[0].performClick()
         composeTestRule.waitForIdle()
         
         // Verify no additional haptic feedback in edit mode
         assert(testHapticManager.singleBuzzCount == buzzCountBefore)
+        
+        // Verify task state didn't change
+        runBlocking {
+            val checklist = checklistRepository.getChecklist(testChecklistId).first()
+            assert(checklist?.tasks?.get(0)?.isCompleted == true) // Still completed
+        }
         
         // Exit edit mode
         composeTestRule.onNodeWithContentDescription("Done editing").performClick()

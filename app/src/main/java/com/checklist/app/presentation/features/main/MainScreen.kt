@@ -11,6 +11,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.checklist.app.presentation.features.active_checklists.ActiveChecklistsScreen
 import com.checklist.app.presentation.features.current_checklist.CurrentChecklistScreen
@@ -60,19 +63,22 @@ fun MainScreen(
                     selected = state.currentTab == Tab.TEMPLATES,
                     onClick = { viewModel.selectTab(Tab.TEMPLATES) },
                     icon = { Icon(Icons.Default.List, contentDescription = "Templates") },
-                    label = { Text("Templates") }
+                    label = { Text("Templates", modifier = Modifier.semantics { role = Role.Tab }) },
+                    modifier = Modifier.semantics { role = Role.Tab }
                 )
                 NavigationBarItem(
                     selected = state.currentTab == Tab.ACTIVE_CHECKLISTS,
                     onClick = { viewModel.selectTab(Tab.ACTIVE_CHECKLISTS) },
                     icon = { Icon(Icons.Default.CheckCircle, contentDescription = "Active") },
-                    label = { Text("Active") }
+                    label = { Text("Active", modifier = Modifier.semantics { role = Role.Tab }) },
+                    modifier = Modifier.semantics { role = Role.Tab }
                 )
                 NavigationBarItem(
                     selected = state.currentTab == Tab.CURRENT_CHECKLIST,
                     onClick = { viewModel.selectTab(Tab.CURRENT_CHECKLIST) },
                     icon = { Icon(Icons.Default.Edit, contentDescription = "Current") },
-                    label = { Text("Current") }
+                    label = { Text("Current", modifier = Modifier.semantics { role = Role.Tab }) },
+                    modifier = Modifier.semantics { role = Role.Tab }
                 )
             }
         }

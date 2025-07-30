@@ -1,5 +1,7 @@
 # Android Emulation Test Notes
 
+When fixing tests, first run the test and explain why the test failed: what should the production code do? How does the test validate it? Is the test validating in an unreliable way, or was the test written with the wrong expectation? If you can't confidently explain the test failure, experiment until you can. Write code that does the part you're unsure of, but emitting signal that lets you diagnose the actual behavior.
+
 ## Critical Issues and Solutions
 
 ### 1. TextField Text Entry Must Update ViewModel

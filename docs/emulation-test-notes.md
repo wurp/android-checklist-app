@@ -168,13 +168,21 @@ composeTestRule.onNodeWithText("Templates").performClick()
 composeTestRule.onNodeWithText("Active").performClick()
 composeTestRule.onNodeWithText("Current").performClick()
 
-// Note: The app auto-navigates to Current tab when clicking a checklist
+// Note: The app auto-navigates to Current tab in these cases:
+// 1. When clicking START button to create a checklist from template
+// 2. When clicking on a checklist from the Active tab
 ```
 
 #### Screen Navigation
 ```kotlin
-// Templates → Template Editor
+// Templates → Template Editor (to edit template)
 composeTestRule.onNodeWithText(templateName).performClick()
+
+// Templates → Create Checklist (creates new checklist instance)
+composeTestRule.onNode(
+    hasText("START") and hasAnyAncestor(hasText(templateName))
+).performClick()
+// Note: App auto-navigates to Current tab after creating checklist
 
 // Active → Current Checklist (auto-switches tab)
 composeTestRule.onNodeWithText(checklistName).performClick()
@@ -255,6 +263,25 @@ composeTestRule.onNode(hasText("Templates") and hasRole(Role.Tab))
 
 // Good - Use text directly
 composeTestRule.onNodeWithText("Templates")
+```
+
+#### 4. Creating Checklists from Templates
+```kotlin
+// Wrong - Clicking template name edits the template
+composeTestRule.onNodeWithText(templateName).performClick()
+
+// Correct - Click START button to create checklist instance
+composeTestRule.onNode(
+    hasText("START") and hasAnyAncestor(hasText(templateName))
+).performClick()
+
+// Handle duplicate warning if checklist already exists
+try {
+    composeTestRule.onNodeWithText("Create").performClick()
+    composeTestRule.waitForIdle()
+} catch (e: AssertionError) {
+    // No dialog appeared, checklist was created successfully
+}
 ```
 
 #### 2. Checkbox Behavior in Edit Mode

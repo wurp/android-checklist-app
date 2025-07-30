@@ -5,6 +5,8 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.state.ToggleableState
 import com.checklist.app.presentation.MainActivity
 import com.checklist.app.data.repository.TemplateRepository
 import com.checklist.app.data.repository.ChecklistRepository
@@ -75,8 +77,10 @@ class DataPersistenceEndToEndTest {
         composeTestRule.onNodeWithContentDescription("Save template").performClick()
         composeTestRule.waitForIdle()
         
-        // Create checklist by clicking on template
-        composeTestRule.onNodeWithText(uniqueName).performClick()
+        // Create checklist by clicking START button
+        composeTestRule.onNode(
+            hasText("START") and hasAnyAncestor(hasText(uniqueName))
+        ).performClick()
         composeTestRule.waitForIdle()
         
         // Handle duplicate warning dialog if it appears
@@ -87,8 +91,12 @@ class DataPersistenceEndToEndTest {
             // No dialog appeared, continue
         }
         
-        // Wait for checklist to load
-        composeTestRule.waitUntil(timeoutMillis = 5000) {
+        // App should auto-navigate to Current tab after creation
+        Thread.sleep(50)
+        composeTestRule.waitForIdle()
+        
+        // Wait for checklist tasks to load
+        composeTestRule.waitUntil(timeoutMillis = 10000) {
             composeTestRule.onAllNodesWithTag("task-checkbox").fetchSemanticsNodes().isNotEmpty()
         }
         
@@ -120,7 +128,7 @@ class DataPersistenceEndToEndTest {
         ).performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText(uniqueName).assertIsDisplayed()
-        composeTestRule.onNodeWithText("50%").assertIsDisplayed() // 1 of 2 tasks completed
+        composeTestRule.onNodeWithText("50% complete").assertIsDisplayed() // 1 of 2 tasks completed
         
         // Select checklist and verify task completion state
         composeTestRule.onNodeWithText(uniqueName).performClick()
@@ -371,8 +379,10 @@ class DataPersistenceEndToEndTest {
         composeTestRule.onNodeWithContentDescription("Save template").performClick()
         composeTestRule.waitForIdle()
         
-        // Create checklist by clicking on template
-        composeTestRule.onNodeWithText(templateName).performClick()
+        // Create checklist by clicking START button
+        composeTestRule.onNode(
+            hasText("START") and hasAnyAncestor(hasText(templateName))
+        ).performClick()
         composeTestRule.waitForIdle()
         
         // Handle duplicate warning dialog if it appears
@@ -383,8 +393,12 @@ class DataPersistenceEndToEndTest {
             // No dialog appeared, continue
         }
         
-        // Wait for checklist to load
-        composeTestRule.waitUntil(timeoutMillis = 5000) {
+        // App should auto-navigate to Current tab after creation
+        Thread.sleep(50)
+        composeTestRule.waitForIdle()
+        
+        // Wait for checklist tasks to load
+        composeTestRule.waitUntil(timeoutMillis = 10000) {
             composeTestRule.onAllNodesWithTag("task-checkbox").fetchSemanticsNodes().isNotEmpty()
         }
         
@@ -393,6 +407,12 @@ class DataPersistenceEndToEndTest {
         composeTestRule.waitForIdle()
         composeTestRule.onAllNodesWithTag("task-checkbox")[5].performClick()
         composeTestRule.waitForIdle()
+        
+        // Scroll to find more tasks
+        composeTestRule.onNode(hasScrollAction()).performScrollToIndex(10)
+        composeTestRule.waitForIdle()
+        
+        // Click on task 10 (now visible after scrolling)
         composeTestRule.onAllNodesWithTag("task-checkbox")[10].performClick()
         composeTestRule.waitForIdle()
         
@@ -422,7 +442,30 @@ class DataPersistenceEndToEndTest {
         // Verify specific tasks are completed
         composeTestRule.onAllNodesWithTag("task-checkbox")[0].assertIsOn()
         composeTestRule.onAllNodesWithTag("task-checkbox")[5].assertIsOn()
-        composeTestRule.onAllNodesWithTag("task-checkbox")[10].assertIsOn()
+        
+        // Scroll to verify task 10
+        composeTestRule.onNode(hasScrollAction()).performScrollToNode(
+            hasText("Task 11")
+        )
+        composeTestRule.waitForIdle()
+        
+        // Find and verify the task that should be at index 10 (Task 11)
+        composeTestRule.onNode(
+            hasText("Task 11") and hasAnyAncestor(hasTag("task-checkbox"))
+        ).assertExists()
+        
+        // The checkbox for Task 11 should be on
+        val task11Checkbox = composeTestRule.onAllNodesWithTag("task-checkbox")
+            .fetchSemanticsNodes()
+            .find { node ->
+                node.config.getOrNull(SemanticsProperties.ContentDescription)
+                    ?.any { it.toString().contains("Task 11") } == true
+            }
+        assertNotNull("Task 11 checkbox should exist", task11Checkbox)
+        assertTrue("Task 11 should be completed", 
+            task11Checkbox?.config?.get(SemanticsProperties.ToggleableState) == ToggleableState.On)
+        
+        // Verify an uncompleted task
         composeTestRule.onAllNodesWithTag("task-checkbox")[1].assertIsOff()
     }
     

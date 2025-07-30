@@ -7,6 +7,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import com.checklist.app.presentation.MainActivity
 import com.checklist.app.data.repository.TemplateRepository
 import com.checklist.app.data.repository.ChecklistRepository
+import com.checklist.app.presentation.features.active_checklists.hasRole
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.flow.first
@@ -57,10 +58,10 @@ class TemplateManagementEndToEndDebugTest {
             Log.d("TemplateDebugTest", "No nodes found with 'Templates' text")
         }
         
-        // Try to find and click Templates tab
+        // Try to find and click Templates tab - use Role.Tab to disambiguate
         try {
             composeTestRule.onNode(
-                hasText("Templates", ignoreCase = true)
+                hasText("Templates") and hasRole(Role.Tab)
             ).performClick()
             composeTestRule.waitForIdle()
             Log.d("TemplateDebugTest", "Successfully clicked Templates tab")
@@ -152,4 +153,5 @@ class TemplateManagementEndToEndDebugTest {
         assertTrue("Debug test completed", true)
     }
 }
+
 

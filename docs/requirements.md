@@ -12,6 +12,8 @@ A mobile checklist application that allows users to create reusable templates an
 - **Edit Templates**: Modify existing templates (name and steps)
 - **Delete Templates**: Remove templates with confirmation dialog
 - **Persistent Storage**: Templates saved locally on device
+- **Drag-and-Drop Reordering**: ID-based tracking system for reliable task reordering
+- **Sample Templates**: Auto-loaded from assets/ on first launch (Morning Routine, Travel Packing, Apollo 11 Launch)
 
 ### 2. Active Checklist Management
 - **Instantiate Templates**: Create active checklists from templates
@@ -25,7 +27,8 @@ A mobile checklist application that allows users to create reusable templates an
 - **Haptic Feedback**: Single vibration on task completion
 - **Progress Persistence**: Maintain state between app sessions
 - **Completion Celebration**: Triple vibration + chime when all tasks complete
-- **Edit Mode**: Allows editing task text, adding new tasks, and deleting tasks from active checklists
+- **Edit Mode**: Edit task text, add new tasks, and delete tasks from active checklists
+- **Dynamic Task Management**: Add tasks via "Add New Task" cards, edit inline, delete with confirmation
 
 ## User Interface Structure
 
@@ -39,7 +42,9 @@ The app features a 3-tab interface on the main screen:
      - Template name
      - Number of tasks
      - Delete button (garbage can icon)
-   - Tap template to open editor
+     - START button to create checklist
+   - Tap template name to open editor
+   - Tap START button to instantiate checklist
 
 2. **Active Checklists Tab**
    - List view of all running checklists
@@ -57,12 +62,13 @@ The app features a 3-tab interface on the main screen:
      - Checklist name
      - Overall progress
      - Delete button (garbage can icon)
-     - Edit button (pencil icon) to enter edit mode
+     - Edit toggle button to enter/exit edit mode
    - Edit mode features:
-     - Edit task text inline
-     - Delete individual tasks
-     - Add new tasks with FAB
+     - Edit task text inline with save/cancel buttons
+     - Delete individual tasks with confirmation
+     - Add new tasks via "Add New Task" cards
      - Checkboxes disabled during editing
+     - Drag-and-drop reordering (future)
    - Empty state when no checklist selected
 
 ### Secondary Screens
@@ -72,10 +78,11 @@ The app features a 3-tab interface on the main screen:
 - Scrollable list of steps/tasks:
   - Each step shows text and delete (garbage can) icon
   - Tap step text to edit inline (supports multiline text with up to 5 visible lines)
-  - Long press and drag to reorder steps
-- Floating Action Button (+) to add new step
+  - Drag handle for reordering steps (ID-based tracking)
+  - "Add New Task" cards between tasks and at the end
 - Save button in toolbar
 - Back navigation to cancel (with unsaved changes warning)
+- Automatic save on successful edits
 
 #### Confirmation Dialogs
 All delete operations show confirmation:
@@ -105,11 +112,12 @@ All delete operations show confirmation:
 
 ### Starting a Checklist
 1. User navigates to Templates tab
-2. Selects a template
+2. Taps START button on a template
 3. System creates active checklist
 4. If duplicate exists, shows warning dialog
 5. User confirms or cancels
 6. On confirm, switches to Current Checklist tab
+7. New checklist becomes the current checklist
 
 ### Completing Tasks
 1. User on Current Checklist tab
@@ -171,10 +179,12 @@ All delete operations show confirmation:
 - Checkbox with Material styling
 
 ### Feedback Systems
-- Haptic: Android Vibrator API
-  - Single buzz: 50ms
-  - Triple buzz: 50ms on, 50ms off, repeated 3x
-- Audio: System notification sound for completion
+- Haptic: Managed via HapticManager
+  - Single buzz: 50ms vibration on task completion
+  - Triple buzz: 50ms on, 50ms off, repeated 3x for checklist completion
+- Audio: Managed via SoundManager
+  - Completion chime for finished checklists
+  - Uses system notification sound
 
 ## Non-Functional Requirements
 
@@ -194,7 +204,29 @@ All delete operations show confirmation:
 - State recovery after app kill
 - No data loss on crashes
 
-## Future Considerations (Not in v1)
+## Implemented Features
+
+### In-App Purchase
+- "Throw Dev a Bone" support option
+- One-time $0.99 purchase via Google Play Billing
+- Persistent purchase state tracking
+- No features locked behind payment
+
+### Sample Templates
+- Auto-loaded from assets/ directory on first launch
+- Includes real-world examples:
+  - Morning Routine
+  - Travel Packing List
+  - Apollo 11 Launch Sequence
+- Smart text parser for template import
+
+### Enhanced UI/UX
+- Material Design 3 with dynamic theming
+- START button for clear template instantiation
+- Improved edit mode with inline editing
+- ID-based drag-and-drop for reliable reordering
+
+## Future Considerations
 - Template categories/folders
 - Search functionality
 - Cloud sync

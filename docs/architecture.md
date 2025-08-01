@@ -30,11 +30,12 @@ This document outlines the technical architecture for the Android Checklist appl
 ## Project Structure
 
 ```
-com.checklist.app/
+com.eschaton.checklists/
 ├── di/                      # Dependency injection modules
 │   ├── AppModule.kt
 │   ├── DatabaseModule.kt
-│   └── TestChecklistModule.kt  # Test doubles for instrumented tests
+│   ├── TestChecklistModule.kt  # Test doubles for instrumented tests
+│   └── BillingModule.kt         # Google Play Billing integration
 ├── data/                    # Data layer
 │   ├── database/
 │   │   ├── AppDatabase.kt
@@ -51,8 +52,10 @@ com.checklist.app/
 │   │   └── impl/
 │   │       ├── TemplateRepositoryImpl.kt
 │   │       └── ChecklistRepositoryImpl.kt
-│   └── mappers/
-│       └── EntityMappers.kt
+│   ├── mappers/
+│   │   └── EntityMappers.kt
+│   └── preferences/
+│       └── PreferencesManager.kt  # DataStore for app preferences
 ├── domain/                  # Business logic
 │   ├── model/
 │   │   ├── Template.kt
@@ -64,11 +67,13 @@ com.checklist.app/
 │       │   ├── UpdateTemplateUseCase.kt
 │       │   ├── DeleteTemplateUseCase.kt
 │       │   └── GetTemplatesUseCase.kt
-│       └── checklist/
-│           ├── CreateChecklistUseCase.kt
-│           ├── UpdateTaskStatusUseCase.kt
-│           ├── DeleteChecklistUseCase.kt
-│           └── GetChecklistsUseCase.kt
+│       ├── checklist/
+│       │   ├── CreateChecklistUseCase.kt
+│       │   ├── UpdateTaskStatusUseCase.kt
+│       │   ├── DeleteChecklistUseCase.kt
+│       │   └── GetChecklistsUseCase.kt
+│       └── billing/
+│           └── ThrowDevABoneUseCase.kt  # In-app purchase logic
 ├── presentation/            # UI layer
 │   ├── theme/
 │   │   ├── Theme.kt
@@ -94,7 +99,8 @@ com.checklist.app/
 │   │   │   ├── TemplateEditorViewModel.kt
 │   │   │   └── components/
 │   │   │       ├── StepItem.kt
-│   │   │       └── DraggableList.kt
+│   │   │       ├── DraggableList.kt  # ID-based drag tracking
+│   │   │       └── AddNewTaskCard.kt
 │   │   ├── active_checklists/
 │   │   │   ├── ActiveChecklistsScreen.kt
 │   │   │   ├── ActiveChecklistsViewModel.kt
@@ -104,10 +110,15 @@ com.checklist.app/
 │   │       ├── CurrentChecklistScreen.kt
 │   │       ├── CurrentChecklistViewModel.kt
 │   │       └── components/
-│   │           └── TaskItem.kt
-│   └── utils/
-│       ├── HapticManager.kt      # Open class for test doubles
-│       └── SoundManager.kt       # Open class for test doubles
+│   │           ├── TaskItem.kt
+│   │           └── EditableTaskItem.kt  # Edit mode task UI
+│   ├── utils/
+│   │   ├── HapticManager.kt      # Open class for test doubles
+│   │   ├── SoundManager.kt       # Open class for test doubles
+│   │   └── SampleTemplateLoader.kt  # Loads templates from assets/
+│   └── billing/
+│       ├── BillingRepository.kt  # Google Play Billing interface
+│       └── BillingScreen.kt      # "Throw Dev a Bone" UI
 ├── ChecklistApplication.kt
 └── HiltTestRunner.kt            # Custom test runner for Hilt integration
 
@@ -288,7 +299,8 @@ iOS/
 
 ### Permissions
 - VIBRATE: For haptic feedback
-- No other permissions required
+- INTERNET: For Google Play Billing
+- BILLING: For in-app purchases
 
 ## Performance Considerations
 
@@ -336,11 +348,11 @@ android {
     compileSdk = 34
     
     defaultConfig {
-        applicationId = "com.checklist.app"
+        applicationId = "com.eschaton.checklists"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.1"
     }
     
     buildTypes {
@@ -358,6 +370,17 @@ android {
 3. Sign with release key
 4. Generate app bundle for Play Store
 5. Test on multiple devices
+
+## Current Features
+
+### Core Functionality
+- Template creation and management with drag-and-drop reordering
+- Multiple concurrent checklist instances
+- Task completion with haptic feedback (single vibration)
+- Checklist completion celebration (triple vibration + chime)
+- Edit mode for active checklists (add/edit/delete tasks)
+- Sample templates auto-loaded from assets/
+- "Throw Dev a Bone" in-app purchase support
 
 ## Future Enhancements
 

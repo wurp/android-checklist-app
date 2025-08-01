@@ -2,25 +2,18 @@
 
 ## App Details
 - **App Name**: Checklist - Simple Task Manager
-- **Package Name**: com.checklist.app
+- **Package Name**: com.eschaton.checklists
 - **Category**: Productivity
 - **Content Rating**: Everyone
 
-## Pricing Model Options
+## Pricing Model
 
-### Option 1: Free with Optional "Support Developer" ($0.99)
+### Free with Optional "Throw Dev a Bone" Support
 - App is completely free with all features
-- Add a "Support Developer" option in settings
-- One-time $0.99 in-app purchase
+- "Throw Dev a Bone" option in main menu
+- One-time $0.99 in-app purchase for support
 - No features locked behind payment
-
-### Option 2: Free with Ads, $0.99 to Remove
-- Show minimal banner ads
-- One-time $0.99 purchase removes ads forever
-
-### Option 3: Free Trial, Then $0.99
-- 30-day free trial with all features
-- One-time $0.99 purchase after trial
+- Google Play Billing integration implemented
 
 ## Required Assets
 
@@ -70,13 +63,15 @@ Run several checklists simultaneously. Start your morning routine while keeping 
 • No unnecessary features or complexity
 
 ✓ KEY FEATURES
-• Offline - no internet required
+• Offline - works without internet (except for optional support purchase)
 • Fast and responsive
-• Material Design interface
+• Material Design 3 interface
 • No ads, no subscriptions
 • Your data stays on your device
 • Edit active checklists on the fly
 • Multiline task support
+• Sample templates included (Morning Routine, Travel Packing, Apollo 11 Launch)
+• START button for quick checklist creation
 
 Perfect for:
 - Daily routines
@@ -87,9 +82,30 @@ Perfect for:
 - Project checklists
 - Event planning
 
-[Optional: Support development with a one-time $0.99 contribution]
+Support development with "Throw Dev a Bone" - a one-time $0.99 contribution
 ```
 
-## Implementation for Payment Option
+## Additional Store Listing Details
 
-To add the $0.99 support option:
+### What's New (Release 1.0.1)
+- Sample templates auto-load on first launch
+- "Throw Dev a Bone" support option
+- Improved drag-and-drop stability
+- Enhanced edit mode for active checklists
+- Bug fixes and performance improvements
+
+### Privacy Policy Required Elements
+- Local data storage only
+- No user data collection
+- Internet permission only for Google Play Billing
+- No analytics or tracking
+
+### Store Listing Tags
+- checklist
+- task manager
+- productivity
+- offline
+- templates
+- routines
+- to-do list
+- habit tracker

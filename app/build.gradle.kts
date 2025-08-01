@@ -16,7 +16,7 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.checklist.app"
-    compileSdk = 34
+    compileSdk = 36
 
     signingConfigs {
         create("release") {
@@ -32,9 +32,9 @@ android {
     defaultConfig {
         applicationId = "com.eschaton.checklists"
         minSdk = 24
-        targetSdk = 34
-        versionCode = 3
-        versionName = "1.0.2"
+        targetSdk = 36
+        versionCode = 4
+        versionName = "1.0.3"
 
         testInstrumentationRunner = "com.checklist.app.HiltTestRunner"
         vectorDrawables {

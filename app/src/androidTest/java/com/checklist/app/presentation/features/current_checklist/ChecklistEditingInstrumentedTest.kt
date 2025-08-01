@@ -217,7 +217,7 @@ class ChecklistEditingInstrumentedTest {
         composeTestRule.waitForIdle()
         
         // Give time for the deletion to process
-        Thread.sleep(500)
+        Thread.sleep(200)
         
         // Verify task is deleted
         composeTestRule.onNodeWithText("Task 2").assertDoesNotExist()
@@ -271,7 +271,7 @@ class ChecklistEditingInstrumentedTest {
         composeTestRule.waitForIdle()
         
         // Give time for the addition to process
-        Thread.sleep(500)
+        Thread.sleep(200)
         
         // Verify new task is added
         composeTestRule.onNodeWithText("New Task 4").assertIsDisplayed()
@@ -322,14 +322,14 @@ class ChecklistEditingInstrumentedTest {
         composeTestRule.onAllNodesWithContentDescription("Delete task")[1].performClick()
         composeTestRule.onNodeWithText("Delete").performClick()
         composeTestRule.waitForIdle()
-        Thread.sleep(500)
+        Thread.sleep(200)
         
         // 3. Add new task
         composeTestRule.onAllNodesWithTag("add-new-task-card")[0].performClick()
         composeTestRule.onNodeWithTag("new-task-field").performTextInput("Brand New Task")
         composeTestRule.onNodeWithContentDescription("Save new task").performClick()
         composeTestRule.waitForIdle()
-        Thread.sleep(500)
+        Thread.sleep(200)
         
         // Verify final state
         composeTestRule.onNodeWithText("Edited Task").assertIsDisplayed()

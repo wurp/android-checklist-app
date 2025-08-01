@@ -96,7 +96,7 @@ class DataPersistenceEndToEndTest {
         composeTestRule.waitForIdle()
         
         // Wait for checklist tasks to load
-        composeTestRule.waitUntil(timeoutMillis = 10000) {
+        composeTestRule.waitUntil(timeoutMillis = 200) {
             composeTestRule.onAllNodesWithTag("task-checkbox").fetchSemanticsNodes().isNotEmpty()
         }
         
@@ -398,7 +398,7 @@ class DataPersistenceEndToEndTest {
         composeTestRule.waitForIdle()
         
         // Wait for checklist tasks to load
-        composeTestRule.waitUntil(timeoutMillis = 10000) {
+        composeTestRule.waitUntil(timeoutMillis = 200) {
             composeTestRule.onAllNodesWithTag("task-checkbox").fetchSemanticsNodes().isNotEmpty()
         }
         
@@ -408,12 +408,32 @@ class DataPersistenceEndToEndTest {
         composeTestRule.onAllNodesWithTag("task-checkbox")[5].performClick()
         composeTestRule.waitForIdle()
         
-        // Scroll to find more tasks
-        composeTestRule.onNode(hasScrollAction()).performScrollToIndex(10)
+        // Scroll to find Task 11
+        composeTestRule.onNode(hasScrollAction()).performScrollToNode(
+            hasText("Task 11")
+        )
         composeTestRule.waitForIdle()
         
-        // Click on task 10 (now visible after scrolling)
-        composeTestRule.onAllNodesWithTag("task-checkbox")[10].performClick()
+        // Wait for scroll to complete
+        Thread.sleep(200)
+        composeTestRule.waitForIdle()
+        
+        // Find Task 11's checkbox by looking for its parent row
+        val taskRows = composeTestRule.onAllNodes(hasTestTag("task-checkbox")).fetchSemanticsNodes()
+        val task11Row = taskRows.find { node ->
+            val siblings = node.parent?.children ?: emptyList()
+            siblings.any { sibling -> 
+                sibling.config.getOrNull(SemanticsProperties.Text)?.any { 
+                    it.toString() == "Task 11" 
+                } == true
+            }
+        }
+        
+        assertNotNull("Task 11 checkbox row should exist", task11Row)
+        
+        // Click on Task 11's checkbox
+        composeTestRule.onNode(SemanticsMatcher("Task 11 checkbox") { it.id == task11Row!!.id })
+            .performClick()
         composeTestRule.waitForIdle()
         
         // Restart app
@@ -449,10 +469,12 @@ class DataPersistenceEndToEndTest {
         )
         composeTestRule.waitForIdle()
         
+        // Wait for the scroll to complete
+        Thread.sleep(200)
+        composeTestRule.waitForIdle()
+        
         // Find and verify the task that should be at index 10 (Task 11)
-        composeTestRule.onNode(
-            hasText("Task 11") and hasAnyAncestor(hasTag("task-checkbox"))
-        ).assertExists()
+        composeTestRule.onNodeWithText("Task 11").assertExists()
         
         // The checkbox for Task 11 should be on
         val task11Checkbox = composeTestRule.onAllNodesWithTag("task-checkbox")

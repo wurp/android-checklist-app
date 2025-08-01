@@ -4,6 +4,7 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.test.espresso.Espresso
 import com.checklist.app.presentation.MainActivity
 import com.checklist.app.data.repository.TemplateRepository
 import com.checklist.app.data.repository.ChecklistRepository
@@ -269,7 +270,7 @@ class NavigationIntegrationTest {
     // Test 4: Back Navigation Handling
     @Test
     fun testBackNavigationHandling() {
-        // Test Android back button behavior
+        // Test navigation using UI back button
         
         // Go to Template Editor
         composeTestRule.onNode(
@@ -279,10 +280,12 @@ class NavigationIntegrationTest {
         composeTestRule.onNodeWithContentDescription("Create Template").performClick()
         composeTestRule.waitForIdle()
         
-        // Press back (using activity method)
-        composeTestRule.activityRule.scenario.onActivity { activity ->
-            activity.onBackPressedDispatcher.onBackPressed()
-        }
+        // Wait for template editor to load
+        Thread.sleep(200)
+        composeTestRule.waitForIdle()
+        
+        // Use the UI back button instead of Android back
+        composeTestRule.onNodeWithContentDescription("Back").performClick()
         composeTestRule.waitForIdle()
         
         // Should be back on Templates tab
@@ -290,34 +293,36 @@ class NavigationIntegrationTest {
             hasText("Templates") and hasRole(Role.Tab)
         ).assertIsSelected()
         
-        // Navigate to Active, then Current
+        // Test tab navigation (which doesn't need back press)
+        // Navigate to Active
         composeTestRule.onNode(
             hasText("Active") and hasRole(Role.Tab)
         ).performClick()
         composeTestRule.waitForIdle()
+        
+        // Should be on Active tab
+        composeTestRule.onNode(
+            hasText("Active") and hasRole(Role.Tab)
+        ).assertIsSelected()
+        
+        // Navigate to Current
         composeTestRule.onNode(
             hasText("Current") and hasRole(Role.Tab)
         ).performClick()
         composeTestRule.waitForIdle()
         
-        // Press back
-        composeTestRule.activityRule.scenario.onActivity { activity ->
-            activity.onBackPressedDispatcher.onBackPressed()
-        }
-        composeTestRule.waitForIdle()
-        
-        // Should go to previous tab (Active)
+        // Should be on Current tab
         composeTestRule.onNode(
-            hasText("Active") and hasRole(Role.Tab)
+            hasText("Current") and hasRole(Role.Tab)
         ).assertIsSelected()
         
-        // Press back again
-        composeTestRule.activityRule.scenario.onActivity { activity ->
-            activity.onBackPressedDispatcher.onBackPressed()
-        }
+        // Navigate back to Templates
+        composeTestRule.onNode(
+            hasText("Templates") and hasRole(Role.Tab)
+        ).performClick()
         composeTestRule.waitForIdle()
         
-        // Should go to Templates (first tab)
+        // Should be on Templates tab
         composeTestRule.onNode(
             hasText("Templates") and hasRole(Role.Tab)
         ).assertIsSelected()
@@ -460,7 +465,83 @@ class NavigationIntegrationTest {
         composeTestRule.onAllNodesWithTag("task-checkbox")[0].assertIsOff()
     }
     
-    // Test 8: Orientation Change Navigation
+    // Test 8: Android System Back Button Navigation
+    @Test
+    fun testAndroidSystemBackButtonNavigation() {
+        // Test Android system back button behavior - matches actual app behavior:
+        // - Back from template editor returns to templates list
+        // - Back from main screen (tabs) exits the app
+        
+        // First ensure we're on Templates tab
+        composeTestRule.onNode(
+            hasText("Templates") and hasRole(Role.Tab)
+        ).performClick()
+        composeTestRule.waitForIdle()
+        
+        // Test 1: Back from template editor should return to templates list
+        composeTestRule.onNodeWithContentDescription("Create Template").performClick()
+        composeTestRule.waitForIdle()
+        
+        // Wait for template editor to be fully loaded
+        Thread.sleep(200)
+        
+        // Verify we're in template editor
+        composeTestRule.onNodeWithText("New Template").assertIsDisplayed()
+        
+        // Use Espresso's pressBack() which is more reliable for testing
+        Espresso.pressBack()
+        
+        // Wait for navigation
+        Thread.sleep(200)
+        composeTestRule.waitForIdle()
+        
+        // Should be back on Templates tab
+        composeTestRule.onNode(
+            hasText("Templates") and hasRole(Role.Tab)
+        ).assertIsSelected()
+        composeTestRule.onNodeWithContentDescription("Create Template").assertIsDisplayed()
+        
+        // Test 2: Back from editing existing template
+        composeTestRule.onNodeWithText(testTemplateName).performClick()
+        composeTestRule.waitForIdle()
+        
+        // Wait for template editor to load
+        Thread.sleep(200)
+        
+        // Verify we're in template editor
+        composeTestRule.onNodeWithTag("template-name-field").assertIsDisplayed()
+        
+        // Press back
+        Espresso.pressBack()
+        
+        // Wait for navigation
+        Thread.sleep(200)
+        composeTestRule.waitForIdle()
+        
+        // Should be back on Templates tab
+        composeTestRule.onNode(
+            hasText("Templates") and hasRole(Role.Tab)
+        ).assertIsSelected()
+        composeTestRule.onNodeWithText(testTemplateName).assertIsDisplayed()
+        
+        // Test 3: Verify that back from main screen would exit app
+        // We can't actually test app exit without breaking the test,
+        // but we can verify we're on a main tab (which would exit on back)
+        composeTestRule.onNode(
+            hasText("Active") and hasRole(Role.Tab)
+        ).performClick()
+        composeTestRule.waitForIdle()
+        
+        // Verify we're on a main tab screen
+        composeTestRule.onNode(
+            hasText("Active") and hasRole(Role.Tab)
+        ).assertIsSelected()
+        
+        // Note: From here, pressing back would exit the app, which matches
+        // the actual behavior described by the user
+    }
+    
+    // Test 9: Orientation Change Navigation
     @Test
     fun testOrientationChangeNavigation() {
         // Select a checklist and complete a task

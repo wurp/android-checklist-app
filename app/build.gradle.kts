@@ -33,8 +33,8 @@ android {
         applicationId = "com.eschaton.checklists"
         minSdk = 24
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.0.1"
+        versionCode = 3
+        versionName = "1.0.2"
 
         testInstrumentationRunner = "com.checklist.app.HiltTestRunner"
         vectorDrawables {
@@ -111,7 +111,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     
     // Google Play Billing (for in-app purchases)
-    implementation("com.android.billingclient:billing-ktx:6.0.1")
+    implementation("com.android.billingclient:billing-ktx:7.0.0")
     
     // DataStore for preferences
     implementation("androidx.datastore:datastore-preferences:1.0.0")

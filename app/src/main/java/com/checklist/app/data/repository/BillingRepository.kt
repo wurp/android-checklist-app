@@ -24,7 +24,11 @@ class BillingRepository @Inject constructor(
     
     private val billingClient = BillingClient.newBuilder(context)
         .setListener(this)
-        .enablePendingPurchases()
+        .enablePendingPurchases(
+            PendingPurchasesParams.newBuilder()
+                .enableOneTimeProducts()
+                .build()
+        )
         .build()
     
     private val _hasPurchased = MutableStateFlow(false)
